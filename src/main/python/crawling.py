@@ -6,12 +6,32 @@ import time
 import csv
 import pandas as pd
 
-#네이버 지도 접속
+#사용자에게 설정할 범위를 실수로 입력받음
+#주어진 조건에 부합하지 않을 경우 계속 input 요청함 
+while True:
+    try:
+        print("위치 범위를 설정해주세요.")
+        print("13~16 사이의 실수만 입력 가능하며, 수가 커질수록 검색 범위는 좁아집니다.")
+        print("각 수에 대한 거리 범위는 아래와 같습니다.")
+        print("- 13~14: 반경 약 4km ~ 2km")
+        print("- 14~15: 반경 약 2km ~ 1km")
+        print("- 15~16: 반경 약 1km ~ 0.5km")
+
+        scope = float(input("==> "))
+        if scope < 13 or scope > 16:
+            continue
+        else:
+            break
+    except:
+        pass
+        
+#범위를 반영하여 네이버 지도 접속
 driver = webdriver.Chrome()
-url = 'https://map.naver.com'
+url = f'https://map.naver.com/p?c={scope},0,0,0,dh'
 driver.get(url)
 
-time.sleep(3)
+# 접속 시 완전히 페이지가 업로드 되도록 3초 sleep
+time.sleep(3) 
 
 #내부에 들어가 음식점 버튼 클릭
 restaurant_btn = driver.find_element(By.CSS_SELECTOR, ".item_bubble_keyword button")
@@ -36,7 +56,7 @@ most_btn.send_keys(Keys.ENTER)
 
 time.sleep(1)
 
-#"영업중" 버튼 클릭
+#"영업중" 버튼 클릭15
 working_btn = driver.find_element(By.CSS_SELECTOR, "#_popup_property+div > span:first-child > a")
 working_btn.send_keys(Keys.ENTER)
 
