@@ -5,6 +5,20 @@ Format:
 
 <repository url>
 
-<licence>
+<license>
 
 -----------------------------------------------------------
+BeautifulSoup4:
+wention/BeautifulSoup4 4.12.3
+https://github.com/wention/BeautifulSoup4
+MIT License
+
+Selenium:
+SeleniumHQ/selenium 4.21.0
+https://github.com/SeleniumHQ/selenium
+Apache-2.0 License
+
+Pandas:
+pandas-dev/pandas 2.2.2
+https://github.com/pandas-dev/pandas
+BSD 3-Clause License
