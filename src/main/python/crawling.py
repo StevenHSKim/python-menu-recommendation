@@ -56,7 +56,7 @@ most_btn.send_keys(Keys.ENTER)
 
 time.sleep(1)
 
-#"영업중" 버튼 클릭15
+#"영업중" 버튼 클릭
 working_btn = driver.find_element(By.CSS_SELECTOR, "#_popup_property+div > span:first-child > a")
 working_btn.send_keys(Keys.ENTER)
 
