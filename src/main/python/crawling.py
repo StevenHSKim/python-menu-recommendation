@@ -16,7 +16,7 @@ while True:
         print("- 13~14: 반경 약 4km ~ 2km")
         print("- 14~15: 반경 약 2km ~ 1km")
         print("- 15~16: 반경 약 1km ~ 0.5km")
-
+        
         scope = float(input("==> "))
         if scope < 13 or scope > 16:
             continue
@@ -24,17 +24,18 @@ while True:
             break
     except:
         pass
-        
+    
 #범위를 반영하여 네이버 지도 접속
 driver = webdriver.Chrome()
 url = f'https://map.naver.com/p?c={scope},0,0,0,dh'
 driver.get(url)
+driver.maximize_window()
 
 # 접속 시 완전히 페이지가 업로드 되도록 3초 sleep
 time.sleep(3) 
 
 #내부에 들어가 음식점 버튼 클릭
-restaurant_btn = driver.find_element(By.CSS_SELECTOR, ".item_bubble_keyword button")
+restaurant_btn = driver.find_element(By.CSS_SELECTOR, ".item_bubble_keyword:first-child button")
 restaurant_btn.send_keys(Keys.ENTER)
 
 time.sleep(2)
