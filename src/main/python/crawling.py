@@ -3,117 +3,124 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import time
-from tqdm import tqdm
+from datetime import datetime
 import json
 
-# 사용자에게 설정할 범위를 실수로 입력받음
-# 주어진 조건에 부합하지 않을 경우 계속 input 요청함
-while True:
-    print("위치 범위를 설정해주세요.")
-    print("13~16 사이의 실수만 입력 가능하며, 수가 커질수록 검색 범위는 좁아집니다.")
-    print("각 수에 대한 거리 범위는 아래와 같습니다.")
-    print("- 13~14: 반경 약 4km ~ 2km")
-    print("- 14~15: 반경 약 2km ~ 1km")
-    print("- 15~16: 반경 약 1km ~ 0.5km")
+def crawl(radius):
+    driver = webdriver.Chrome()
+    url = f"https://map.naver.com/p?c={radius},0,0,0,dh"
+    options = webdriver.ChromeOptions()
+    driver.get(url)
 
-    try:
-        radius = float(input("==> "))
-    except ValueError:
-        continue
+    time.sleep(3)
 
-    if 13 <= radius <= 16:
-        break
+    restaurant_btn = driver.find_element(By.CSS_SELECTOR, ".item_bubble_keyword:first-child button")
+    restaurant_btn.send_keys(Keys.ENTER)
+    time.sleep(2)
 
-# 범위를 반영하여 네이버 지도 접속
-driver = webdriver.Chrome()
-url = f"https://map.naver.com/p?c={radius},0,0,0,dh"
-driver.get(url)
-driver.maximize_window()
+    driver.switch_to.frame("searchIframe")
+    time.sleep(1)
 
-# 접속 시 완전히 페이지가 업로드 되도록 3초 sleep
-time.sleep(3)
+    option_btn = driver.find_element(By.CSS_SELECTOR, "._restaurant_filter_item:first-child > a")
+    option_btn.send_keys(Keys.ENTER)
+    time.sleep(1)
 
-# 내부에 들어가 음식점 버튼 클릭
-restaurant_btn = driver.find_element(By.CSS_SELECTOR, ".item_bubble_keyword:first-child button")
-restaurant_btn.send_keys(Keys.ENTER)
-time.sleep(2)
+    most_btn = driver.find_element(By.CSS_SELECTOR, "#_popup_rank+div > span:first-child > a")
+    most_btn.send_keys(Keys.ENTER)
+    time.sleep(1)
 
-# 새로 생긴 탭으로 iframe 전환
-driver.switch_to.frame("searchIframe")
-time.sleep(1)
+    working_btn = driver.find_element(By.CSS_SELECTOR, "#_popup_property+div > span:first-child > a")
+    working_btn.send_keys(Keys.ENTER)
 
-# 필터링 버튼 클릭
-option_btn = driver.find_element(By.CSS_SELECTOR, "._restaurant_filter_item:first-child > a")
-option_btn.send_keys(Keys.ENTER)
-time.sleep(1)
+    result_btn = driver.find_element(By.CSS_SELECTOR, ".qeVvz a:last-child")
+    result_btn.send_keys(Keys.ENTER)
+    time.sleep(1.5)
 
-# "많이찾는" 버튼 클릭 -> 사람들이 더 선호하는 식당 중심으로 수집 가능
-most_btn = driver.find_element(By.CSS_SELECTOR, "#_popup_rank+div > span:first-child > a")
-most_btn.send_keys(Keys.ENTER)
-time.sleep(1)
+    for _ in range(10):
+        element = driver.find_elements(By.CSS_SELECTOR, "#_pcmap_list_scroll_container > ul > li")[-1]
+        driver.execute_script("arguments[0].scrollIntoView(true);", element)
 
-# "영업중" 버튼 클릭
-working_btn = driver.find_element(By.CSS_SELECTOR, "#_popup_property+div > span:first-child > a")
-working_btn.send_keys(Keys.ENTER)
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
 
-# "결과보기" 버튼 클릭
-result_btn = driver.find_element(By.CSS_SELECTOR, ".qeVvz a:last-child")
-result_btn.send_keys(Keys.ENTER)
-time.sleep(1.5)
+    driver.quit()
 
-# 음식점 1페이지 끝까지 스크롤
-for _ in range(10):
-    element = driver.find_elements(By.CSS_SELECTOR, "#_pcmap_list_scroll_container > ul > li")[-1]
-    driver.execute_script("arguments[0].scrollIntoView(true);", element)
+    restaurant_names = [restaurant_name.text for restaurant_name in soup.select('.place_bluelink')] 
+    restaurant_menus = [restaurant_menu.text for restaurant_menu in soup.select('.KCMnt')] 
 
-# html parsing
-html = driver.page_source
-soup = BeautifulSoup(html, "html.parser")
+    restaurant_data = {}
 
-# 크롬 창 닫기
-driver.quit()
+    print("----[Crawling Progress]----")
+    restuarants = soup.select("#_pcmap_list_scroll_container > ul > li")
+    for i in tqdm(range(1,len(restuarants)+1), ncols=80, leave=False):
+        RESTAURANT_CONTAINER = f"#_pcmap_list_scroll_container ul li:nth-child({i}) .MVx6e"
+        restaurant_rate = soup.select(f"{RESTAURANT_CONTAINER} .orXYY")
+        restaurant_program = soup.select(f"{RESTAURANT_CONTAINER} .V1dzc")
+        restaurant_review = soup.select(f"{RESTAURANT_CONTAINER} > span:nth-last-child(1)")
 
-# 가게 이름과 메뉴 종류 리스트 생성
-restaurant_names = [restaurant_name.text for restaurant_name in soup.select('.place_bluelink')] 
-restaurant_menus = [restaurant_menu.text for restaurant_menu in soup.select('.KCMnt')] 
+        restaurant_data[restaurant_names[i-1]] = {}
+        restaurant_data[restaurant_names[i-1]]["menu"] = restaurant_menus[i-1]
 
-# 가게 정보를 담을 딕셔너리
-restaurant_data = {}
+        if restaurant_rate == []:
+            restaurant_data[restaurant_names[i-1]]["rate"] = None
+        else:
+            restaurant_data[restaurant_names[i-1]]["rate"] = float(restaurant_rate[0].text.lstrip("별점"))
 
-# 별점, 출연한 TV 프로그램, 리뷰 수의 정보를 크롤링하여 딕셔너리에 담음
-# 해당 세 정보는 크롤링 시에 존재하지 않는 경우가 존재하여 따로 크롤링을 진행
-# 크롤링 시간이 오래 걸려 tqdm으로 사용자에게 진행 현황 시각화
-print("----[Crawling Progress]----")
-for i,name in enumerate(tqdm(restaurant_names, ncols=80, leave=False)):
-    RESTAURANT_CONTAINER = f"#_pcmap_list_scroll_container ul li:nth-child({i+1}) .MVx6e"
-    restaurant_rate = soup.select(f"{RESTAURANT_CONTAINER} .orXYY")
-    restaurant_program = soup.select(f"{RESTAURANT_CONTAINER} .V1dzc")
-    restaurant_review = soup.select(f"{RESTAURANT_CONTAINER} > span:nth-last-child(1)")
+        if restaurant_program == []:
+            restaurant_data[restaurant_names[i-1]]["program"] = None
+        else:
+            restaurant_data[restaurant_names[i-1]]["program"] = restaurant_program[0].text.lstrip("TV")
 
-    restaurant_data[name] = {}
-    restaurant_data[name]["menu"] = restaurant_menus[i]
-
-    if restaurant_rate == []:
-        restaurant_data[name]["rate"] = None
-    else:
-        restaurant_data[name]["rate"] = float(restaurant_rate[0].text.lstrip("별점"))
-
-    if restaurant_program == []:
-        restaurant_data[name]["program"] = None
-    else:
-        restaurant_data[name]["program"] = restaurant_program[0].text.lstrip("TV")
-
-    # 리뷰 정보를 담은 html 태그의 위치가 가게에 따라 두 가지의 경우로 나뉘어 아래와 같이 작성
-    try:
-        restaurant_data[name]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip('+'))
-    except ValueError:
         try:
-            restaurant_review = soup.select(f"{RESTAURANT_CONTAINER} > span:nth-last-child(2)")
-            restaurant_data[name]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip('+'))
+            restaurant_data[restaurant_names[i-1]]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip('+'))
         except ValueError:
-            restaurant_data[name]["review"] = None
+            try:
+                restaurant_review = soup.select(f"{RESTAURANT_CONTAINER} > span:nth-last-child(2)")
+                restaurant_data[restaurant_names[i-1]]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip('+'))
+            except ValueError:
+                restaurant_data[restaurant_names[i-1]]["review"] = None
 
-# 가게 정보 딕셔너리를 JSON 타입의 문자열로 변환 후 json 파일에 저장
-json_data = json.dumps(restaurant_data, indent=2, ensure_ascii=False)
-with open("data.json", 'w', encoding="utf-8") as f:
-    f.write(json_data)
+    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    save_path = f"crawled_data_{current_time}.json"
+
+    json_data = json.dumps(restaurant_data, indent=2, ensure_ascii=False)
+    with open(save_path, 'w', encoding="utf-8") as f:
+        f.write(json_data)
+    
+    return save_path
+
+def crawl_school_meal():
+    now = datetime.now()
+    if now.hour >= 13 and now.hour < 18:  # 13:30 ~ 18:30 사이
+        meal_time = "dinner"
+    else:
+        meal_time = "lunch"
+
+    school_restaurant = "truly-wise"
+    url = f"https://www.mealtify.com/univ/cau/{school_restaurant}/meal/today/{meal_time}"
+    
+    driver = webdriver.Chrome()
+    driver.get(url)
+    time.sleep(3)
+    
+    html = driver.page_source
+    soup = BeautifulSoup(html, "html.parser")
+    driver.quit()
+
+    school_restaurant_data = {}
+    
+    school_menus = [school_menu.text for school_menu in soup.select(".pt-4 tbody tr td:nth-child(1)")[:-1]]
+    school_types = [school_type.text for school_type in soup.select(".pt-4 tbody tr td:nth-child(2)")[:-1]]
+    school_kcals = [school_kcal.text for school_kcal in soup.select(".pt-4 tbody tr td:nth-child(3)")[:-1]]
+    
+    for i, menu in enumerate(school_menus):
+        school_restaurant_data[menu] = {"type": school_types[i], "kcal": school_kcals[i]}
+
+    json_data = json.dumps(school_restaurant_data, indent=2, ensure_ascii=False)
+    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+    save_path = f"school_meal_{current_time}.json"
+    
+    with open(save_path, 'w', encoding="utf-8") as f:
+        f.write(json_data)
+    
+    return save_path
