@@ -5,9 +5,7 @@ from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QL
                              QRadioButton, QButtonGroup, QMessageBox, QProgressDialog, QDialog, QCheckBox,
                              QDialogButtonBox, QRadioButton)
 from PyQt5.QtCore import Qt, QTimer
-import crawling
 import recommendation
-import classify_food
 from recommendation import FoodType, Menu
 from datetime import datetime
 
@@ -117,55 +115,13 @@ class ResultDialog(QDialog):
             re_recommendation_dialog = ReRecommendationDialog(self)
             if re_recommendation_dialog.exec_() == QDialog.Accepted:
                 if re_recommendation_dialog.retry_check.isChecked():
-                    self.retry_recommendation()
+                    recommendations, dessert_recommendations = recommendation.retry_recommendation()
+                    new_dialog = ResultDialog(recommendations, dessert_recommendations, self)
+                    new_dialog.exec_()
                 elif re_recommendation_dialog.cafeteria_check.isChecked():
-                    self.recommend_school_meal()
-
-    def retry_recommendation(self):
-        """
-        메뉴 추천을 다시 시도하는 함수
-        """
-        filename = recommendation.get_latest_classified_file()
-        data = recommendation.load_data(filename)
-        
-        recommendations = []
-        dessert_recommendations = []
-        
-        for name, details in data.items():
-            food_type_str = details['category']
-            food_type = next(e for e in FoodType if e.value[1] == food_type_str)
-            menu = Menu(name, food_type, description=details["menu"], price=None)
-            if food_type == FoodType.DESSERT:
-                dessert_recommendations.append(menu)
-            else:
-                recommendations.append(menu)
-        
-        recommendations = random.sample(recommendations, 5)
-        dessert_recommendations = random.sample(dessert_recommendations, 2)
-        
-        new_dialog = ResultDialog(recommendations, dessert_recommendations, self)
-        new_dialog.exec_()
-
-    def recommend_school_meal(self):
-        """
-        학교 급식을 추천하는 함수
-        """
-        progress_dialog = LoadingDialog("학식 정보를 가져오는 중입니다...", self)
-        progress_dialog.show()
-        QApplication.processEvents()
-
-        school_meal_filename = crawling.crawl_school_meal()
-        progress_dialog.close()
-
-        data = recommendation.load_data(school_meal_filename)
-
-        recommendations = []
-        for name, details in data.items():
-            menu = Menu(name, description=details["type"], price=details["kcal"])
-            recommendations.append(menu)
-
-        new_dialog = SchoolMealResultDialog(recommendations, self)
-        new_dialog.exec_()
+                    recommendations = recommendation.recommend_school_meal()
+                    new_dialog = SchoolMealResultDialog(recommendations, self)
+                    new_dialog.exec_()
 
 class SchoolMealResultDialog(QDialog):
     """
@@ -219,39 +175,13 @@ class SchoolMealResultDialog(QDialog):
             re_recommendation_dialog = ReRecommendationDialog(self)
             if re_recommendation_dialog.exec_() == QDialog.Accepted:
                 if re_recommendation_dialog.retry_check.isChecked():
-                    self.retry_recommendation()
+                    recommendations, dessert_recommendations = recommendation.retry_recommendation()
+                    new_dialog = SchoolMealResultDialog(recommendations, self)
+                    new_dialog.exec_()
                 elif re_recommendation_dialog.cafeteria_check.isChecked():
-                    self.recommend_school_meal()
-
-    def retry_recommendation(self):
-        """
-        기존 학식 데이터를 랜덤으로 재추천하는 함수
-        """
-        recommendations = random.sample(self.recommendations, min(5, len(self.recommendations)))
-        new_dialog = SchoolMealResultDialog(recommendations, self)
-        new_dialog.exec_()
-
-    def recommend_school_meal(self):
-        """
-        학교 급식 정보를 가져와서 추천하는 함수
-        """
-        progress_dialog = LoadingDialog("학식 정보를 가져오는 중입니다...", self)
-        progress_dialog.show()
-        QApplication.processEvents()
-
-        school_meal_filename = crawling.crawl_school_meal()
-        progress_dialog.close()
-
-        data = recommendation.load_data(school_meal_filename)
-
-        recommendations = []
-        for category, details in data.items():
-            for name, info in details["menu"].items():
-                menu = Menu(name, description=info["type"])
-                recommendations.append(menu)
-
-        new_dialog = SchoolMealResultDialog(recommendations, self)
-        new_dialog.exec_()
+                    recommendations = recommendation.recommend_school_meal()
+                    new_dialog = SchoolMealResultDialog(recommendations, self)
+                    new_dialog.exec_()
 
 class MenuRecommendationApp(QWidget):
     """
@@ -348,22 +278,6 @@ class MenuRecommendationApp(QWidget):
                         break
         return food_history
 
-    def crawl_and_classify(self, radius, progress_dialog):
-        """
-        크롤링 및 분류 작업을 수행하는 함수
-        """
-        # Start crawling
-        progress_dialog.update_message("음식점 데이터 크롤링 중입니다. 잠시만 기다려주세요.")
-        
-        input_filename = crawling.crawl(radius)
-        
-        progress_dialog.update_message("음식점 분류 작업 중입니다. 잠시만 기다려주세요.")
-        
-        classified_filename = classify_food.process_restaurants(input_filename)
-        
-        progress_dialog.setValue(100)
-        return classified_filename
-
     def recommend_menu(self):
         """
         메뉴 추천을 수행하는 함수
@@ -374,13 +288,13 @@ class MenuRecommendationApp(QWidget):
             progress_dialog.show()
             QApplication.processEvents()  # 업데이트 강제 실행
             
-            classified_filename = self.crawl_and_classify(radius, progress_dialog)
+            classified_filename = recommendation.crawl_and_classify(radius)
             progress_dialog.close()
 
             food_history = self.get_food_history()
             if any(food_history.values()):
                 try:
-                    recommendations, dessert_recommendations = recommendation.get_recommendations(food_history)
+                    recommendations, dessert_recommendations = recommendation.get_recommendations_from_file(classified_filename, food_history)
                     
                     self.show_result_dialog(recommendations, dessert_recommendations)
                 except ValueError as e:
