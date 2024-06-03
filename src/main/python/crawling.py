@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import time
 from datetime import datetime
-import tqdm
+from tqdm import tqdm
 import json
 
 def crawl(radius):
@@ -52,34 +52,33 @@ def crawl(radius):
     restaurant_data = {}
 
     print("----[Crawling Progress]----")
-    restuarants = soup.select("#_pcmap_list_scroll_container > ul > li")
-    for i in tqdm(range(1,len(restuarants)+1), ncols=80, leave=False):
-        RESTAURANT_CONTAINER = f"#_pcmap_list_scroll_container ul li:nth-child({i}) .MVx6e"
+    for i,name in enumerate(tqdm(restaurant_names, ncols=80, leave=False)):
+        RESTAURANT_CONTAINER = f"#_pcmap_list_scroll_container ul li:nth-child({i+1}) .MVx6e"
         restaurant_rate = soup.select(f"{RESTAURANT_CONTAINER} .orXYY")
         restaurant_program = soup.select(f"{RESTAURANT_CONTAINER} .V1dzc")
         restaurant_review = soup.select(f"{RESTAURANT_CONTAINER} > span:nth-last-child(1)")
 
-        restaurant_data[restaurant_names[i-1]] = {}
-        restaurant_data[restaurant_names[i-1]]["menu"] = restaurant_menus[i-1]
+        restaurant_data[name] = {}
+        restaurant_data[name]["menu"] = restaurant_menus[i]
 
         if restaurant_rate == []:
-            restaurant_data[restaurant_names[i-1]]["rate"] = None
+            restaurant_data[name]["rate"] = None
         else:
-            restaurant_data[restaurant_names[i-1]]["rate"] = float(restaurant_rate[0].text.lstrip("별점"))
+            restaurant_data[name]["rate"] = float(restaurant_rate[0].text.lstrip("별점"))
 
         if restaurant_program == []:
-            restaurant_data[restaurant_names[i-1]]["program"] = None
+            restaurant_data[name]["program"] = None
         else:
-            restaurant_data[restaurant_names[i-1]]["program"] = restaurant_program[0].text.lstrip("TV")
+            restaurant_data[name]["program"] = restaurant_program[0].text.lstrip("TV")
 
         try:
-            restaurant_data[restaurant_names[i-1]]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip('+'))
+            restaurant_data[name]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip('+'))
         except ValueError:
             try:
                 restaurant_review = soup.select(f"{RESTAURANT_CONTAINER} > span:nth-last-child(2)")
-                restaurant_data[restaurant_names[i-1]]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip('+'))
+                restaurant_data[name]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip('+'))
             except ValueError:
-                restaurant_data[restaurant_names[i-1]]["review"] = None
+                restaurant_data[name]["review"] = None
 
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     save_path = f"crawled_data_{current_time}.json"
