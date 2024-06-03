@@ -1,7 +1,9 @@
 import sys
 import os
 import random
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QRadioButton, QButtonGroup, QMessageBox, QProgressDialog, QDialog, QCheckBox, QDialogButtonBox, QRadioButton
+from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit,
+                             QRadioButton, QButtonGroup, QMessageBox, QProgressDialog, QDialog, QCheckBox,
+                             QDialogButtonBox, QRadioButton)
 from PyQt5.QtCore import Qt, QTimer
 import crawling
 import recommendation
@@ -10,6 +12,9 @@ from recommendation import FoodType, Menu
 from datetime import datetime
 
 class LoadingDialog(QProgressDialog):
+    """
+    로딩 중임을 나타내는 진행 표시 대화 상자 클래스
+    """
     def __init__(self, message, parent=None):
         super().__init__(parent)
         self.setWindowTitle('로딩 중...')
@@ -25,6 +30,9 @@ class LoadingDialog(QProgressDialog):
         QApplication.processEvents()
 
 class ReRecommendationDialog(QDialog):
+    """
+    재추천 옵션을 선택할 수 있는 대화 상자 클래스
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle('재추천 옵션')
@@ -48,6 +56,9 @@ class ReRecommendationDialog(QDialog):
         self.setLayout(layout)
 
 class ResultDialog(QDialog):
+    """
+    추천 결과를 보여주는 대화 상자 클래스
+    """
     def __init__(self, recommendations, dessert_recommendations, parent=None):
         super().__init__(parent)
         self.setWindowTitle('추천 결과')
@@ -88,6 +99,9 @@ class ResultDialog(QDialog):
         self.setLayout(layout)
 
     def format_menu(self, index, menu):
+        """
+        메뉴 포맷을 설정하는 함수
+        """
         menu_str = f"{index + 1}. {menu.name} ({menu.food_type})\n"
         menu_str += "메뉴:\n"
         for dish in menu.description.split(", "):
@@ -108,6 +122,9 @@ class ResultDialog(QDialog):
                     self.recommend_school_meal()
 
     def retry_recommendation(self):
+        """
+        메뉴 추천을 다시 시도하는 함수
+        """
         filename = recommendation.get_latest_classified_file()
         data = recommendation.load_data(filename)
         
@@ -130,6 +147,9 @@ class ResultDialog(QDialog):
         new_dialog.exec_()
 
     def recommend_school_meal(self):
+        """
+        학교 급식을 추천하는 함수
+        """
         progress_dialog = LoadingDialog("학식 정보를 가져오는 중입니다...", self)
         progress_dialog.show()
         QApplication.processEvents()
@@ -148,6 +168,9 @@ class ResultDialog(QDialog):
         new_dialog.exec_()
 
 class SchoolMealResultDialog(QDialog):
+    """
+    학교 급식 추천 결과를 보여주는 대화 상자 클래스
+    """
     def __init__(self, recommendations, parent=None):
         super().__init__(parent)
         self.setWindowTitle('학식 추천 결과')
@@ -201,12 +224,17 @@ class SchoolMealResultDialog(QDialog):
                     self.recommend_school_meal()
 
     def retry_recommendation(self):
-        # 기존 학식 데이터를 랜덤으로 재추천
+        """
+        기존 학식 데이터를 랜덤으로 재추천하는 함수
+        """
         recommendations = random.sample(self.recommendations, min(5, len(self.recommendations)))
         new_dialog = SchoolMealResultDialog(recommendations, self)
         new_dialog.exec_()
 
     def recommend_school_meal(self):
+        """
+        학교 급식 정보를 가져와서 추천하는 함수
+        """
         progress_dialog = LoadingDialog("학식 정보를 가져오는 중입니다...", self)
         progress_dialog.show()
         QApplication.processEvents()
@@ -225,9 +253,10 @@ class SchoolMealResultDialog(QDialog):
         new_dialog = SchoolMealResultDialog(recommendations, self)
         new_dialog.exec_()
 
-
-
 class MenuRecommendationApp(QWidget):
+    """
+    메뉴 추천 애플리케이션 메인 클래스
+    """
     def __init__(self):
         super().__init__()
         self.initUI()
@@ -293,6 +322,9 @@ class MenuRecommendationApp(QWidget):
         self.setLayout(self.main_layout)
 
     def get_radius(self):
+        """
+        선택한 반경을 반환하는 함수
+        """
         if self.walk_nearby.isChecked():
             return 15  # 1km 반경
         elif self.walk_more.isChecked():
@@ -304,6 +336,9 @@ class MenuRecommendationApp(QWidget):
             return None
 
     def get_food_history(self):
+        """
+        최근 3일 동안 먹은 음식 종류를 반환하는 함수
+        """
         food_history = {day: [] for day in self.days}
         for day in self.days:
             for meal in self.meals:
@@ -314,6 +349,9 @@ class MenuRecommendationApp(QWidget):
         return food_history
 
     def crawl_and_classify(self, radius, progress_dialog):
+        """
+        크롤링 및 분류 작업을 수행하는 함수
+        """
         # Start crawling
         progress_dialog.update_message("음식점 데이터 크롤링 중입니다. 잠시만 기다려주세요.")
         
@@ -327,6 +365,9 @@ class MenuRecommendationApp(QWidget):
         return classified_filename
 
     def recommend_menu(self):
+        """
+        메뉴 추천을 수행하는 함수
+        """
         radius = self.get_radius()
         if radius is not None:
             progress_dialog = LoadingDialog("작업을 준비 중입니다...", self)
@@ -350,6 +391,9 @@ class MenuRecommendationApp(QWidget):
             self.result_text.setText('반경을 선택해주세요.')
 
     def show_result_dialog(self, recommendations, dessert_recommendations):
+        """
+        결과 대화 상자를 보여주는 함수
+        """
         result_dialog = ResultDialog(recommendations, dessert_recommendations, self)
         result_dialog.exec_()
 

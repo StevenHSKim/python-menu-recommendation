@@ -1,10 +1,11 @@
 from enum import Enum
-from typing import Final, Tuple, Callable, List, Set, Dict, Any
+from typing import Final, Tuple, Callable, List, Dict, Any
 import json
 import os
 import random
 import glob
 
+# 음식 종류를 정의하는 Enum 클래스
 class FoodType(Enum):
     KOREAN = (1, "한식")
     CHINESE = (2, "중식")
@@ -24,6 +25,7 @@ class FoodType(Enum):
     def __str__(self) -> str:
         return self.value[1]
 
+# 메뉴를 정의하는 클래스
 class Menu:
     def __init__(self, name: str, food_type: FoodType = None, description: str = None, price: int = None):
         self.name: Final[str] = name
@@ -43,11 +45,13 @@ class Menu:
         result += f"\n가중치: {self.weight}"
         return result
 
+# JSON 파일에서 데이터를 로드하는 함수
 def load_data(filename: str):
     with open(filename, 'r', encoding='utf-8') as file:
         data = json.load(file)
     return data
 
+# 음식 섭취 기록을 기반으로 가중치를 계산하는 함수
 def calculate_weights(food_history: Dict[str, List[FoodType]]) -> Dict[FoodType, int]:
     weights = {food_type: 0 for food_type in FoodType}
     weight_values = {"1일 전": 3, "2일 전": 2, "3일 전": 1}
@@ -58,6 +62,7 @@ def calculate_weights(food_history: Dict[str, List[FoodType]]) -> Dict[FoodType,
     
     return weights
 
+# 데이터를 기반으로 가중치를 적용하는 함수
 def apply_weights(data: Dict[str, Any], weights: Dict[FoodType, int]):
     for restaurant, details in data.items():
         food_type_str = details['category']
@@ -73,11 +78,13 @@ def apply_weights(data: Dict[str, Any], weights: Dict[FoodType, int]):
         if details['review'] is not None:
             details['weight'] += details['review'] * 0.001
 
+# 최신 분류된 파일을 가져오는 함수
 def get_latest_classified_file() -> str:
     list_of_files = glob.glob('classified_data_*.json')
     latest_file = max(list_of_files, key=os.path.getmtime)
     return latest_file
 
+# 추천을 생성하는 함수
 def get_recommendations(food_history: Dict[str, List[FoodType]]) -> Tuple[List[Menu], List[Menu]]:
     filename = get_latest_classified_file()
     if not os.path.exists(filename):
@@ -117,6 +124,7 @@ def get_recommendations(food_history: Dict[str, List[FoodType]]) -> Tuple[List[M
     
     return top_recommendations, top_dessert_recommendations
 
+# 특정 조건이 만족될 때까지 함수 실행을 반복하는 함수
 def do_while(r: Callable[[], bool]):
     result: bool = r()
     while result is True:
