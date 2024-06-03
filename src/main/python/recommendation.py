@@ -1,13 +1,9 @@
-import crawling
-import classify_food
 from enum import Enum
 from typing import Final, Tuple, Callable, List, Dict, Any
 import json
 import os
 import random
 import glob
-from datetime import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # 음식 종류를 정의하는 Enum 클래스
 class FoodType(Enum):
@@ -133,87 +129,3 @@ def do_while(r: Callable[[], bool]):
     result: bool = r()
     while result is True:
         result = r()
-
-def retry_recommendation():
-    """
-    메뉴 추천을 다시 시도하는 함수
-    """
-    filename = get_latest_classified_file()
-    data = load_data(filename)
-    
-    recommendations = []
-    dessert_recommendations = []
-    
-    for name, details in data.items():
-        food_type_str = details['category']
-        food_type = next(e for e in FoodType if e.value[1] == food_type_str)
-        menu = Menu(name, food_type, description=details["menu"], price=None)
-        if food_type == FoodType.DESSERT:
-            dessert_recommendations.append(menu)
-        else:
-            recommendations.append(menu)
-    
-    recommendations = random.sample(recommendations, 5)
-    dessert_recommendations = random.sample(dessert_recommendations, 2)
-    
-    return recommendations, dessert_recommendations
-
-def recommend_school_meal():
-    """
-    학교 급식을 추천하는 함수
-    """
-    school_meal_filename = crawling.crawl_school_meal()
-    data = load_data(school_meal_filename)
-
-    recommendations = []
-    for name, details in data.items():
-        menu = Menu(name, description=details["type"], price=details["kcal"])
-        recommendations.append(menu)
-
-    return recommendations
-
-def crawl_and_classify(radius):
-    """
-    크롤링 및 분류 작업을 수행하는 함수
-    """
-    input_filename = crawling.crawl(radius)
-    classified_filename = classify_food.process_restaurants(input_filename)
-    return classified_filename
-
-def get_recommendations_from_file(classified_filename, food_history):
-    """
-    분류된 파일과 음식 섭취 기록을 기반으로 추천을 생성하는 함수
-    """
-    data = load_data(classified_filename)
-    weights = calculate_weights(food_history)
-    apply_weights(data, weights)
-
-    recommendations = []
-    dessert_recommendations = []
-    
-    for name, details in data.items():
-        food_type_str = details['category']
-        food_type = next(e for e in FoodType if e.value[1] == food_type_str)
-        menu = Menu(name, food_type, description=details["menu"], price=None)
-        menu.weight = details['weight']
-        if food_type == FoodType.DESSERT:
-            dessert_recommendations.append(menu)
-        else:
-            recommendations.append(menu)
-    
-    recommendations.sort(key=lambda x: x.weight, reverse=True)
-    dessert_recommendations.sort(key=lambda x: x.weight, reverse=True)
-    
-    # 가중치가 높은 상위 3개 추천
-    top_recommendations = recommendations[:3]
-    
-    # 나머지 2개를 랜덤으로 선택
-    remaining_recommendations = recommendations[3:]
-    if len(remaining_recommendations) > 2:
-        top_recommendations.extend(random.sample(remaining_recommendations, 2))
-    else:
-        top_recommendations.extend(remaining_recommendations[:2])
-    
-    top_dessert_recommendations = dessert_recommendations[:2]
-    
-    return top_recommendations, top_dessert_recommendations
