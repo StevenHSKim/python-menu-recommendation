@@ -25,6 +25,7 @@ def crawl(radius):
     # 네이버 지도 URL 설정 (반경 반영)
     url = f"https://map.naver.com/p?c={radius},0,0,0,dh"
     driver.get(url)
+    driver.maximize_window()
 
     # 페이지 로드 대기
     time.sleep(3)
@@ -78,15 +79,14 @@ def crawl(radius):
 
     # 크롤링 진행 상황 표시
     print("----[Crawling Progress]----")
-    restuarants = soup.select("#_pcmap_list_scroll_container > ul > li")
-    for i in tqdm(range(1,len(restuarants)+1), ncols=80, leave=False):
-        RESTAURANT_CONTAINER = f"#_pcmap_list_scroll_container ul li:nth-child({i}) .MVx6e"
+    for i,name in enumerate(tqdm(restaurant_names, ncols=80, leave=False)):
+        RESTAURANT_CONTAINER = f"#_pcmap_list_scroll_container ul li:nth-child({i+1}) .MVx6e"
         restaurant_rate = soup.select(f"{RESTAURANT_CONTAINER} .orXYY")
         restaurant_program = soup.select(f"{RESTAURANT_CONTAINER} .V1dzc")
         restaurant_review = soup.select(f"{RESTAURANT_CONTAINER} > span:nth-last-child(1)")
 
-        restaurant_data[restaurant_names[i-1]] = {}
-        restaurant_data[restaurant_names[i-1]]["menu"] = restaurant_menus[i-1]
+        restaurant_data[name] = {}
+        restaurant_data[name]["menu"] = restaurant_menus[i]
 
         # 평점 정보가 없는 경우 None으로 설정
         if restaurant_rate == []:
