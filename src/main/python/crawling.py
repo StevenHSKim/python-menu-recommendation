@@ -8,12 +8,12 @@ import requests
 import json
 
 
-def crawl(radius: str) -> str:
+def crawl(radius: int) -> str:
     """
     지정한 반경 내의 음식점 정보를 크롤링하여 JSON 파일로 저장하는 함수
 
     Parameters:
-        radius (str): 크롤링할 반경
+        radius (int): 크롤링할 반경
 
     Returns:
         str: 저장된 JSON 파일 경로
@@ -22,8 +22,8 @@ def crawl(radius: str) -> str:
     # 크롤링 과정 보이지 않도록 하는 옵션
     options = webdriver.ChromeOptions()
     options.add_argument('headless')
-    options.add_argument("--start-maximized") 
-    options.add_argument("--window-size=1920,1080") 
+    options.add_argument("--start-maximized")
+    options.add_argument("--window-size=1920,1080")
 
     # 크롬 웹드라이버 초기화
     driver = webdriver.Chrome(options=options)
@@ -126,6 +126,7 @@ def crawl(radius: str) -> str:
 
     return save_path
 
+
 def school_meal_crawler(place) -> dict:
     """
     학식 정보를 크롤링하여 dictionary에 담아주는 함수
@@ -149,11 +150,11 @@ def school_meal_crawler(place) -> dict:
     # 만일 참슬기식당이라면 특식과 한식을 나누어 dictionary에 저장
     if place == "truly-wise":
         school_return_data = {
-            "A":{
-                "menu":{}
+            "A": {
+                "menu": {}
             },
-            "B":{
-                "menu":{}
+            "B": {
+                "menu": {}
             }
         }
         kind_of_menu = "A"
@@ -165,7 +166,7 @@ def school_meal_crawler(place) -> dict:
             school_return_data[kind_of_menu]["menu"][menu] = {"type": school_types[i]}
     else:
         school_return_data = {
-            "menu":{}
+            "menu": {}
         }
 
         for i, menu in enumerate(school_menus):
@@ -185,27 +186,27 @@ def crawl_school_meal() -> str:
 
     # JSON에 저장할 dictionary
     school_restaurant_data = {}
-    
+
     # 학교 식당 별 학식 정보 크롤링 후 dictionary에 저장
     school_restaurant_data["생활관식당(블루미르308관)"] = school_meal_crawler('blue-308')
     school_restaurant_data["생활관식당(블루미르309관)"] = school_meal_crawler('blue-309')
-    school_restaurant_data["참슬기식당(310관 B4층)"] = school_meal_crawler('truly-wise') 
-        
+    school_restaurant_data["참슬기식당(310관 B4층)"] = school_meal_crawler('truly-wise')
+
     # 파일 명에 코드를 실행한 날짜와 시간을 반영
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     save_path = f"school_meal_{current_time}.json"
-    
+
     # 학식 정보 dictionary를 문자열로 변환 후 JSON파일에 저장
     json_data = json.dumps(school_restaurant_data, indent=2, ensure_ascii=False)
     with open(save_path, 'w', encoding="utf-8") as f:
         f.write(json_data)
-    
+
     return save_path
 
 
 if __name__ == "__main__":
     # 음식점 크롤링 예시
-    radius = "15"  # 반경 15km
+    radius = 15  # 반경 15km
     print(f"Crawled restaurant data saved to: {crawl(radius)}")
 
     # 학식 크롤링 예시

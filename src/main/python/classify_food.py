@@ -1,6 +1,5 @@
 import openai
 import json
-import os
 from datetime import datetime
 from typing import Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -58,7 +57,7 @@ def classify_food_type(restaurant_name: str, menu: str) -> str:
     return category
 
 
-def post_process_category(details: Dict[str, Any]) -> str:
+def post_process_category(details: dict[str, Any]) -> str:
     """
     메뉴 설명을 기반으로 카테고리를 후처리합니다.
 
@@ -79,7 +78,7 @@ def post_process_category(details: Dict[str, Any]) -> str:
     return details["category"]
 
 
-def process_restaurant(restaurant: str, details: Dict[str, Any]) -> (str, Dict[str, Any]):
+def process_restaurant(restaurant: str, details: dict[str, Any]) -> (str, dict[str, Any]):
     """
     개별 식당의 카테고리를 분류하고 후처리합니다.
 

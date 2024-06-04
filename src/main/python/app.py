@@ -1,22 +1,18 @@
 import sys
-import os
 import random
-import glob
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QRadioButton, QButtonGroup, QMessageBox, QProgressDialog, QDialog, QCheckBox, QDialogButtonBox)
 from PyQt5.QtCore import Qt, QTimer
 import crawling
 import recommendation
 import classify_food
 from recommendation import FoodType, Menu
-from datetime import datetime
-import json
 
 
 class LoadingDialog(QProgressDialog):
     """
     로딩 중임을 나타내는 진행 표시 대화 상자 클래스
     """
-    def __init__(self, message, parent=None):
+    def __init__(self, message: str, parent: QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("로딩 중...")
         self.setLabelText(message)
@@ -25,7 +21,7 @@ class LoadingDialog(QProgressDialog):
         self.setValue(0)
         self.setWindowModality(Qt.WindowModal)
 
-    def update_message(self, message):
+    def update_message(self, message: str):
         self.setLabelText(message)
         self.setValue(self.value() + 10)
         QApplication.processEvents()
@@ -39,7 +35,7 @@ class ReRecommendationDialog(QDialog):
     """
     재추천 옵션을 선택할 수 있는 대화 상자 클래스
     """
-    def __init__(self, parent=None):
+    def __init__(self, parent: QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("재추천 옵션")
         self.setGeometry(100, 100, 400, 200)
@@ -67,7 +63,7 @@ class ResultDialog(QDialog):
     no_check = None
     buttons = None
 
-    def __init__(self, recommendations, dessert_recommendations, parent=None):
+    def __init__(self, recommendations: list[Menu], dessert_recommendations: list[Menu], parent: QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("추천 결과")
         self.setGeometry(100, 100, 800, 600)
@@ -106,7 +102,7 @@ class ResultDialog(QDialog):
         layout.addWidget(self.buttons)
         self.setLayout(layout)
 
-    def format_menu(self, index, menu):
+    def format_menu(self, index: int, menu: Menu) -> str:
         """
         메뉴 포맷을 설정하는 함수
         """
@@ -136,12 +132,12 @@ class ResultDialog(QDialog):
         filename = recommendation.get_latest_classified_file()
         data = recommendation.load_data(filename)
 
-        recommendations = []
-        dessert_recommendations = []
+        recommendations: list[Menu] = []
+        dessert_recommendations: list[Menu] = []
 
         for name, details in data.items():
-            food_type_str = details["category"]
-            food_type = next(e for e in FoodType if e.value[1] == food_type_str)
+            food_type_str: str = details["category"]
+            food_type: FoodType = next(e for e in FoodType if e.value[1] == food_type_str)
             menu = Menu(name, food_type, description=details["menu"], price=None)
             if food_type == FoodType.DESSERT:
                 dessert_recommendations.append(menu)
@@ -169,7 +165,7 @@ class ResultDialog(QDialog):
 
         data = recommendation.load_data(school_meal_filename)
 
-        recommendations = []
+        recommendations: list[Menu] = []
         for cafeteria, details in data.items():
             if 'menu' in details:
                 for menu_name, info in details["menu"].items():
@@ -189,8 +185,8 @@ class SchoolMealResultDialog(QDialog):
     yes_check = None
     no_check = None
     buttons = None
-    
-    def __init__(self, data, parent=None):
+
+    def __init__(self, data, parent: QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("학식 추천 결과")
         self.setGeometry(100, 100, 800, 600)
@@ -217,14 +213,14 @@ class SchoolMealResultDialog(QDialog):
         layout.addWidget(self.yes_check)
         layout.addWidget(self.no_check)
 
-        self.buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.buttons: QDialogButtonBox = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.buttons.accepted.connect(self.on_accept)
         self.buttons.rejected.connect(self.reject)
 
         layout.addWidget(self.buttons)
         self.setLayout(layout)
 
-    def format_school_meal_data(self, data):
+    def format_school_meal_data(self, data) -> str:
         result_str = ""
         for cafeteria, details in data.items():
             if "menu" in details:
@@ -238,8 +234,8 @@ class SchoolMealResultDialog(QDialog):
                         result_str += f"{menu}\n"
             result_str += "\n"
         return result_str
-    
-    def format_menu(self, index, menu):
+
+    def format_menu(self, index: int, menu: Menu) -> str:
         """
         메뉴 포맷을 설정하는 함수
         """
@@ -261,7 +257,7 @@ class SchoolMealResultDialog(QDialog):
                     self.retry_recommendation()
                 elif re_recommendation_dialog.cafeteria_check.isChecked():
                     self.recommend_school_meal()
-    
+
     def retry_recommendation(self):
         """
         최신 분류된 데이터에서 랜덤으로 추천하는 함수
@@ -269,12 +265,12 @@ class SchoolMealResultDialog(QDialog):
         filename = recommendation.get_latest_classified_file()
         data = recommendation.load_data(filename)
 
-        recommendations = []
-        dessert_recommendations = []
+        recommendations: list[Menu] = []
+        dessert_recommendations: list[Menu] = []
 
         for name, details in data.items():
-            food_type_str = details["category"]
-            food_type = next(e for e in FoodType if e.value[1] == food_type_str)
+            food_type_str: str = details["category"]
+            food_type: FoodType = next(e for e in FoodType if e.value[1] == food_type_str)
             menu = Menu(name, food_type, description=details["menu"], price=None)
             if food_type == FoodType.DESSERT:
                 dessert_recommendations.append(menu)
@@ -302,7 +298,7 @@ class SchoolMealResultDialog(QDialog):
 
         data = recommendation.load_data(school_meal_filename)
 
-        recommendations = []
+        recommendations: list[Menu] = []
         for cafeteria, details in data.items():
             if 'menu' in details:
                 for menu_name, info in details["menu"].items():
@@ -316,7 +312,6 @@ class SchoolMealResultDialog(QDialog):
 
         new_dialog = SchoolMealResultDialog(data, self)
         new_dialog.exec_()
-
 
 
 class MenuRecommendationApp(QWidget):
@@ -404,7 +399,7 @@ class MenuRecommendationApp(QWidget):
 
         self.setLayout(self.main_layout)
 
-    def get_radius(self):
+    def get_radius(self) -> int | None:
         """
         선택한 반경을 반환하는 함수
         """
@@ -418,7 +413,7 @@ class MenuRecommendationApp(QWidget):
             QMessageBox.warning(self, "Error", "이동 방법을 선택해주세요.")
             return None
 
-    def get_food_history(self):
+    def get_food_history(self) -> dict[str, list[FoodType]]:
         """
         최근 3일 동안 먹은 음식 종류를 반환하는 함수
         """
@@ -431,7 +426,7 @@ class MenuRecommendationApp(QWidget):
                         break
         return food_history
 
-    def crawl_and_classify(self, radius, progress_dialog):
+    def crawl_and_classify(self, radius: int, progress_dialog: LoadingDialog):
         """
         크롤링 및 분류 작업을 수행하는 함수
         """
@@ -442,10 +437,9 @@ class MenuRecommendationApp(QWidget):
 
         progress_dialog.update_message("음식점 분류 작업 중입니다. 잠시만 기다려주세요.")
 
-        classified_filename = classify_food.process_restaurants(input_filename)
+        classify_food.process_restaurants(input_filename)
 
         progress_dialog.setValue(100)
-        return classified_filename
 
     def recommend_menu(self):
         """
@@ -457,7 +451,7 @@ class MenuRecommendationApp(QWidget):
             progress_dialog.show()
             QApplication.processEvents()  # 업데이트 강제 실행
 
-            classified_filename = self.crawl_and_classify(radius, progress_dialog)
+            self.crawl_and_classify(radius, progress_dialog)
             progress_dialog.close()
 
             food_history = self.get_food_history()
@@ -473,7 +467,7 @@ class MenuRecommendationApp(QWidget):
         else:
             self.result_text.setText("반경을 선택해주세요.")
 
-    def show_result_dialog(self, recommendations, dessert_recommendations):
+    def show_result_dialog(self, recommendations: list[Menu], dessert_recommendations: list[Menu]):
         """
         결과 대화 상자를 보여주는 함수
         """
