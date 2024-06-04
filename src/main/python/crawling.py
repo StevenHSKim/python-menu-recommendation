@@ -77,8 +77,7 @@ def crawl(radius: str) -> str:
     # 음식점 데이터를 저장할 딕셔너리 초기화
     restaurant_data = {}
 
-    # 크롤링 진행 상황 표시
-    print("----[Crawling Progress]----")
+    # 평점, 프로그램 출연 정보, 리뷰 수 크롤링
     for i, name in enumerate(restaurant_names):
         restaurant_container = f"#_pcmap_list_scroll_container ul li:nth-child({i+1}) .MVx6e"
         restaurant_rate = soup.select(f"{restaurant_container} .orXYY")
@@ -89,10 +88,16 @@ def crawl(radius: str) -> str:
         restaurant_data[name]["menu"] = restaurant_menus[i]
 
         # 평점 정보가 없는 경우 None으로 설정
-        restaurant_data[name]["rate"] = float(restaurant_rate[0].text.lstrip("별점")) if restaurant_data else None
+        if restaurant_rate == []:
+            restaurant_data[name]["rate"] = None
+        else:
+            restaurant_data[name]["rate"] = float(restaurant_rate[0].text.lstrip("별점"))
 
         # 프로그램 정보가 없는 경우 None으로 설정
-        restaurant_data[name]["program"] = restaurant_program[0].text.lstrip("TV") if restaurant_program else None
+        if restaurant_program == []:
+            restaurant_data[name]["program"] = None
+        else:
+            restaurant_data[name]["program"] = restaurant_program[0].text.lstrip("TV")
 
         # 리뷰 정보가 없는 경우 None으로 설정, 오류 발생 시 재시도
         try:
@@ -145,11 +150,11 @@ def school_meal_crawler(place) -> dict:
                 "menu":{}
             }
         }
-        kind_of_menu = "특식"
+        kind_of_menu = "A"
 
         for i, menu in enumerate(school_menus):
             if "총 칼로리" in menu:
-                kind_of_menu = "한식"
+                kind_of_menu = "B"
                 continue
             school_return_data[kind_of_menu]["menu"][menu] = {"type": school_types[i]}
     else:
@@ -199,3 +204,5 @@ if __name__ == "__main__":
 
     # 학식 크롤링 예시
     print(f"Crawled school meal data saved to: {crawl_school_meal()}")
+
+crawl(15)
