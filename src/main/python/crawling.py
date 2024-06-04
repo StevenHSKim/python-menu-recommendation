@@ -115,43 +115,52 @@ def crawl(radius: str) -> str:
 
     return save_path
 
-def school_meal_crawler(place,mealtime) -> dict:
+def school_meal_crawler(place) -> dict:
     """
     학식 정보를 크롤링하여 dictionary에 담아주는 함수
 
     Parameters:
         place (str): 크롤링 할 학교 식당
-        mealtime (str): 아침, 점심, 저녁
 
     Returns:
         dict: 학식 정보를 담은 dictionary
     """
 
     # 학교 식당, 시간대를 반영하여 mealtify 웹페이지 접속 후 html parsing
-    url = f"https://www.mealtify.com/univ/cau/{place}/meal/today/{mealtime}"
+    url = f"https://www.mealtify.com/univ/cau/{place}/meal/today"
     response = requests.get(url)
     soup = BeautifulSoup(response.content, "html.parser")
 
     # 학식 메뉴와 메뉴의 타입을 크롤링하여 리스트에 저장
-    school_menus = [school_menu.text for school_menu in soup.select(".pt-4 tbody tr td:nth-child(1)")[:-1]]
-    school_types = [school_type.text for school_type in soup.select(".pt-4 tbody tr td:nth-child(1)")[:-1]]
+    school_menus = [school_menu.text for school_menu in soup.select(".pt-4 tbody tr td:nth-child(1)")]
+    school_types = [school_type.text for school_type in soup.select(".pt-4 tbody tr td:nth-child(1)")]
 
     # 만일 참슬기식당이라면 특식과 한식을 나누어 dictionary에 저장
     if place == "truly-wise":
         school_return_data = {
-            "특식":{},
-            "한식":{}
+            "A":{
+                "menu":{}
+            },
+            "B":{
+                "menu":{}
+            }
         }
         kind_of_menu = "특식"
+
         for i, menu in enumerate(school_menus):
             if "총 칼로리" in menu:
                 kind_of_menu = "한식"
                 continue
-            school_return_data[kind_of_menu][menu] = {"type": school_types[i]}
+            school_return_data[kind_of_menu]["menu"][menu] = {"type": school_types[i]}
     else:
-        school_return_data = {}
+        school_return_data = {
+            "menu":{}
+        }
+
         for i, menu in enumerate(school_menus):
-            school_return_data[menu] = {"type": school_types[i]}
+            if "총 칼로리" in menu:
+                continue
+            school_return_data["menu"][menu] = {"type": school_types[i]}
 
     return school_return_data
 
@@ -163,32 +172,14 @@ def crawl_school_meal() -> str:
         str: 저장된 JSON 파일 경로
     """
 
-    # 학교 식당 이름과 JSON에 저장할 dictionary 형태 선언
-    places = ["blue-308", "blue-309", "truly-wise"]
-    places_kr = ["생활관식당(블루미르308관)", "생활관식당(블루미르309관)", "참슬기식당(310관 B4층)"]
-    school_restaurant_data = {
-        "생활관식당(블루미르308관)":{},
-        "생활관식당(블루미르309관)":{},
-        "참슬기식당(310관 B4층)":{}
-    }
+    # JSON에 저장할 dictionary
+    school_restaurant_data = {}
     
-    # 현재 시간을 받아와 시간에 따라 가능한 학식 정보만을 크롤링
-    now = datetime.now().time()
-    if time(hour=7) <= now <= time(hour=8, minute=40):
-        crawled_data = school_meal_crawler(places[0],"breakfast")
-        school_restaurant_data[places_kr[0]]["menu"] = crawled_data
-    elif time(hour=10, minute=30) <= now <= time(hour=13, minute=30):
-        for i in range(3):
-            crawled_data = school_meal_crawler(places[i],"lunch")
-            school_restaurant_data[places_kr[i]]["menu"] = crawled_data
-    elif time(hour=5) <= now <= time(hour=19):
-        for i in range(3):
-            crawled_data = school_meal_crawler(places[i],"dinner")
-            school_restaurant_data[places_kr[i]]["menu"] = crawled_data
-    else:
-        for i in range(3):
-            school_restaurant_data[places_kr[i]]["menu"] = None
-
+    # 학교 식당 별 학식 정보 크롤링 후 dictionary에 저장
+    school_restaurant_data["생활관식당(블루미르308관)"] = school_meal_crawler('blue-308')
+    school_restaurant_data["생활관식당(블루미르309관)"] = school_meal_crawler('blue-309')
+    school_restaurant_data["참슬기식당(310관 B4층)"] = school_meal_crawler('truly-wise') 
+        
     # 파일 명에 코드를 실행한 날짜와 시간을 반영
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     save_path = f"school_meal_{current_time}.json"
