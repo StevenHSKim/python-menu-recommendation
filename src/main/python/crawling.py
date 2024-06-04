@@ -19,8 +19,14 @@ def crawl(radius: str) -> str:
         str: 저장된 JSON 파일 경로
     """
 
+    # 크롤링 과정 보이지 않도록 하는 옵션
+    options = webdriver.ChromeOptions()
+    options.add_argument('headless')
+    options.add_argument("--start-maximized") 
+    options.add_argument("--window-size=1920,1080") 
+
     # 크롬 웹드라이버 초기화
-    driver = webdriver.Chrome()
+    driver = webdriver.Chrome(options=options)
 
     # 네이버 지도 URL 설정 (반경 반영)
     url = f"https://map.naver.com/p?c={radius},0,0,0,dh"
