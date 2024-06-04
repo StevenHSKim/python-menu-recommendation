@@ -1,9 +1,7 @@
 import sys
 import os
 import random
-from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit,
-                             QRadioButton, QButtonGroup, QMessageBox, QProgressDialog, QDialog, QCheckBox,
-                             QDialogButtonBox, QRadioButton)
+from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QRadioButton, QButtonGroup, QMessageBox, QProgressDialog, QDialog, QCheckBox, QDialogButtonBox)
 from PyQt5.QtCore import Qt, QTimer
 import crawling
 import recommendation
@@ -349,6 +347,10 @@ class MenuRecommendationApp(QWidget):
         self.recommend_button = QPushButton("메뉴 추천", self)
         self.recommend_button.clicked.connect(self.recommend_menu)
         self.main_layout.addWidget(self.recommend_button)
+
+        self.result_text = QTextEdit(self)
+        self.result_text.setReadOnly(True)
+        self.main_layout.addWidget(self.result_text)
 
         self.setLayout(self.main_layout)
 
