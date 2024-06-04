@@ -28,10 +28,6 @@ class LoadingDialog(QProgressDialog):
 
 
 class ReRecommendationDialog(QDialog):
-    retry_check = None
-    cafeteria_check = None
-    buttons = None
-
     """
     재추천 옵션을 선택할 수 있는 대화 상자 클래스
     """
@@ -39,9 +35,7 @@ class ReRecommendationDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("재추천 옵션")
         self.setGeometry(100, 100, 400, 200)
-        self.init_ui()
 
-    def init_ui(self):
         layout = QVBoxLayout()
 
         self.retry_check = QCheckBox("다시 추천해줘")
@@ -69,9 +63,7 @@ class ResultDialog(QDialog):
         self.setGeometry(100, 100, 800, 600)
         self.recommendations = recommendations
         self.dessert_recommendations = dessert_recommendations
-        self.init_ui()
 
-    def init_ui(self):
         layout = QVBoxLayout()
 
         result_str = "오늘은 이런 메뉴 어때요?\n"
@@ -182,18 +174,12 @@ class ResultDialog(QDialog):
 
 
 class SchoolMealResultDialog(QDialog):
-    yes_check = None
-    no_check = None
-    buttons = None
-
     def __init__(self, data, parent: QWidget = None):
         super().__init__(parent)
         self.setWindowTitle("학식 추천 결과")
         self.setGeometry(100, 100, 800, 600)
         self.data = data
-        self.init_ui()
 
-    def init_ui(self):
         layout = QVBoxLayout()
 
         result_str = self.format_school_meal_data(self.data)
@@ -315,27 +301,12 @@ class SchoolMealResultDialog(QDialog):
 
 
 class MenuRecommendationApp(QWidget):
-    main_layout = None
-    radius_label = None
-    walk_nearby = None
-    walk_more = None
-    drive = None
-    button_group = None
-    recommend_button = None
-    radio_buttons = None
-    days = None
-    meals = None
-    food_types = None
-    history_label = None
-
     """
     메뉴 추천 애플리케이션 메인 클래스
     """
     def __init__(self):
         super().__init__()
-        self.init_ui()
 
-    def init_ui(self):
         self.setWindowTitle("메뉴 추천 프로그램")
         self.setGeometry(100, 100, 800, 600)
 
