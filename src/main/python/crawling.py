@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import time
 from datetime import datetime
+import requests
 import json
 
 
@@ -114,6 +115,45 @@ def crawl(radius: str) -> str:
 
     return save_path
 
+def school_meal_crawler(place,mealtime) -> dict:
+    """
+    학식 정보를 크롤링하여 dictionary에 담아주는 함수
+
+    Parameters:
+        place (str): 크롤링 할 학교 식당
+        mealtime (str): 아침, 점심, 저녁
+
+    Returns:
+        dict: 학식 정보를 담은 dictionary
+    """
+
+    # 학교 식당, 시간대를 반영하여 mealtify 웹페이지 접속 후 html parsing
+    url = f"https://www.mealtify.com/univ/cau/{place}/meal/today/{mealtime}"
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, "html.parser")
+
+    # 학식 메뉴와 메뉴의 타입을 크롤링하여 리스트에 저장
+    school_menus = [school_menu.text for school_menu in soup.select(".pt-4 tbody tr td:nth-child(1)")[:-1]]
+    school_types = [school_type.text for school_type in soup.select(".pt-4 tbody tr td:nth-child(1)")[:-1]]
+
+    # 만일 참슬기식당이라면 특식과 한식을 나누어 dictionary에 저장
+    if place == "truly-wise":
+        school_return_data = {
+            "특식":{},
+            "한식":{}
+        }
+        kind_of_menu = "특식"
+        for i, menu in enumerate(school_menus):
+            if "총 칼로리" in menu:
+                kind_of_menu = "한식"
+                continue
+            school_return_data[kind_of_menu][menu] = {"type": school_types[i]}
+    else:
+        school_return_data = {}
+        for i, menu in enumerate(school_menus):
+            school_return_data[menu] = {"type": school_types[i]}
+
+    return school_return_data
 
 def crawl_school_meal() -> str:
     """
@@ -123,45 +163,39 @@ def crawl_school_meal() -> str:
         str: 저장된 JSON 파일 경로
     """
 
-    # 현재 시간에 따라 급식 시간을 설정
-    now = datetime.now()
-    if 13 <= now.hour < 18:  # 13:00 ~ 18:00 사이
-        meal_time = "dinner"
+    # 학교 식당 이름과 JSON에 저장할 dictionary 형태 선언
+    places = ["blue-308", "blue-309", "truly-wise"]
+    places_kr = ["생활관식당(블루미르308관)", "생활관식당(블루미르309관)", "참슬기식당(310관 B4층)"]
+    school_restaurant_data = {
+        "생활관식당(블루미르308관)":{},
+        "생활관식당(블루미르309관)":{},
+        "참슬기식당(310관 B4층)":{}
+    }
+    
+    # 현재 시간을 받아와 시간에 따라 가능한 학식 정보만을 크롤링
+    now = datetime.now().time()
+    if time(hour=7) <= now <= time(hour=8, minute=40):
+        crawled_data = school_meal_crawler(places[0],"breakfast")
+        school_restaurant_data[places_kr[0]]["menu"] = crawled_data
+    elif time(hour=10, minute=30) <= now <= time(hour=13, minute=30):
+        for i in range(3):
+            crawled_data = school_meal_crawler(places[i],"lunch")
+            school_restaurant_data[places_kr[i]]["menu"] = crawled_data
+    elif time(hour=5) <= now <= time(hour=19):
+        for i in range(3):
+            crawled_data = school_meal_crawler(places[i],"dinner")
+            school_restaurant_data[places_kr[i]]["menu"] = crawled_data
     else:
-        meal_time = "lunch"
+        for i in range(3):
+            school_restaurant_data[places_kr[i]]["menu"] = None
 
-    school_restaurant = "truly-wise"
-    url = f"https://www.mealtify.com/univ/cau/{school_restaurant}/meal/today/{meal_time}"
-
-    # 크롬 웹드라이버 초기화
-    driver = webdriver.Chrome()
-    driver.get(url)
-    time.sleep(3)
-
-    # 페이지 소스 가져오기
-    html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
-    driver.quit()
-
-    # 학교 급식 데이터를 저장할 딕셔너리 초기화
-    school_restaurant_data = {}
-
-    # 급식 메뉴, 종류, 칼로리 추출
-    school_menus = [school_menu.text for school_menu in soup.select(".pt-4 tbody tr td:nth-child(1)")[:-1]]
-    school_types = [school_type.text for school_type in soup.select(".pt-4 tbody tr td:nth-child(2)")[:-1]]
-    school_kcals = [school_kcal.text for school_kcal in soup.select(".pt-4 tbody tr td:nth-child(3)")[:-1]]
-
-    # 추출한 데이터를 딕셔너리에 저장
-    for i, menu in enumerate(school_menus):
-        school_restaurant_data[menu] = {"type": school_types[i], "kcal": school_kcals[i]}
-
-    # 현재 시간에 따라 파일 이름 설정
+    # 파일 명에 코드를 실행한 날짜와 시간을 반영
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     save_path = f"school_meal_{current_time}.json"
-
-    # JSON 파일로 저장
+    
+    # 학식 정보 dictionary를 문자열로 변환 후 JSON파일에 저장
     json_data = json.dumps(school_restaurant_data, indent=2, ensure_ascii=False)
-    with open(save_path, "w", encoding="utf-8") as f:
+    with open(save_path, 'w', encoding="utf-8") as f:
         f.write(json_data)
-
+    
     return save_path
