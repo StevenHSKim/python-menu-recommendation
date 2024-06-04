@@ -1,11 +1,11 @@
 from enum import Enum
-from typing import Final, Tuple, Callable, List, Dict, Any
+from typing import *
 import json
 import os
 import random
 import glob
 
-# 음식 종류를 정의하는 Enum 클래스
+
 class FoodType(Enum):
     KOREAN = (1, "한식")
     CHINESE = (2, "중식")
@@ -25,7 +25,7 @@ class FoodType(Enum):
     def __str__(self) -> str:
         return self.value[1]
 
-# 메뉴를 정의하는 클래스
+
 class Menu:
     def __init__(self, name: str, food_type: FoodType = None, description: str = None, price: int = None):
         self.name: Final[str] = name
@@ -45,87 +45,86 @@ class Menu:
         result += f"\n가중치: {self.weight}"
         return result
 
+
 # JSON 파일에서 데이터를 로드하는 함수
 def load_data(filename: str):
-    with open(filename, 'r', encoding='utf-8') as file:
+    with open(filename, "r", encoding="utf-8") as file:
         data = json.load(file)
     return data
+
 
 # 음식 섭취 기록을 기반으로 가중치를 계산하는 함수
 def calculate_weights(food_history: Dict[str, List[FoodType]]) -> Dict[FoodType, int]:
     weights = {food_type: 0 for food_type in FoodType}
     weight_values = {"1일 전": 3, "2일 전": 2, "3일 전": 1}
-    
+
     for day, food_types in food_history.items():
         for food_type in food_types:
             weights[food_type] -= weight_values[day]
-    
+
     return weights
+
 
 # 데이터를 기반으로 가중치를 적용하는 함수
 def apply_weights(data: Dict[str, Any], weights: Dict[FoodType, int]):
     for restaurant, details in data.items():
-        food_type_str = details['category']
+        food_type_str = details["category"]
         food_type = next(e for e in FoodType if e.value[1] == food_type_str)
-        details['weight'] = weights[food_type]
+        details["weight"] = weights[food_type]
 
-        if details['program'] is not None:
-            details['weight'] += 3
-        
-        if details['rate'] is not None:
-            details['weight'] += details['rate'] * 0.3
-        
-        if details['review'] is not None:
-            details['weight'] += details['review'] * 0.001
+        if details["program"] is not None:
+            details["weight"] += 3
+
+        if details["rate"] is not None:
+            details["weight"] += details["rate"] * 0.3
+
+        if details["review"] is not None:
+            details["weight"] += details["review"] * 0.001
+
 
 # 최신 분류된 파일을 가져오는 함수
 def get_latest_classified_file() -> str:
-    list_of_files = glob.glob('classified_data_*.json')
+    list_of_files = glob.glob("classified_data_*.json")
     latest_file = max(list_of_files, key=os.path.getmtime)
     return latest_file
+
 
 # 추천을 생성하는 함수
 def get_recommendations(food_history: Dict[str, List[FoodType]]) -> Tuple[List[Menu], List[Menu]]:
     filename = get_latest_classified_file()
     if not os.path.exists(filename):
         raise FileNotFoundError(f"No data file found: {filename}")
-    
+
     data = load_data(filename)
     weights = calculate_weights(food_history)
     apply_weights(data, weights)
 
     recommendations = []
     dessert_recommendations = []
-    
+
     for name, details in data.items():
-        food_type_str = details['category']
+        food_type_str = details["category"]
         food_type = next(e for e in FoodType if e.value[1] == food_type_str)
         menu = Menu(name, food_type, description=details["menu"], price=None)
-        menu.weight = details['weight']
+        menu.weight = details["weight"]
         if food_type == FoodType.DESSERT:
             dessert_recommendations.append(menu)
         else:
             recommendations.append(menu)
-    
+
     recommendations.sort(key=lambda x: x.weight, reverse=True)
     dessert_recommendations.sort(key=lambda x: x.weight, reverse=True)
-    
+
     # 가중치가 높은 상위 3개 추천
     top_recommendations = recommendations[:3]
-    
+
     # 나머지 2개를 랜덤으로 선택
     remaining_recommendations = recommendations[3:]
     if len(remaining_recommendations) > 2:
         top_recommendations.extend(random.sample(remaining_recommendations, 2))
     else:
         top_recommendations.extend(remaining_recommendations[:2])
-    
-    top_dessert_recommendations = dessert_recommendations[:2]
-    
-    return top_recommendations, top_dessert_recommendations
 
-# 특정 조건이 만족될 때까지 함수 실행을 반복하는 함수
-def do_while(r: Callable[[], bool]):
-    result: bool = r()
-    while result is True:
-        result = r()
+    top_dessert_recommendations = dessert_recommendations[:2]
+
+    return top_recommendations, top_dessert_recommendations

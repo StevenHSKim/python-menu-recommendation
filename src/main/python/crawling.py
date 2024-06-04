@@ -1,4 +1,3 @@
-# 필요한 라이브러리 import
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -8,20 +7,21 @@ from datetime import datetime
 from tqdm import tqdm
 import json
 
-def crawl(radius):
+
+def crawl(radius: str) -> str:
     """
     지정한 반경 내의 음식점 정보를 크롤링하여 JSON 파일로 저장하는 함수
-    
+
     Parameters:
         radius (str): 크롤링할 반경
-    
+
     Returns:
         str: 저장된 JSON 파일 경로
     """
-    
+
     # 크롬 웹드라이버 초기화
     driver = webdriver.Chrome()
-    
+
     # 네이버 지도 URL 설정 (반경 반영)
     url = f"https://map.naver.com/p?c={radius},0,0,0,dh"
     driver.get(url)
@@ -71,42 +71,36 @@ def crawl(radius):
     driver.quit()
 
     # 음식점 이름과 메뉴 추출
-    restaurant_names = [restaurant_name.text for restaurant_name in soup.select('.place_bluelink')] 
-    restaurant_menus = [restaurant_menu.text for restaurant_menu in soup.select('.KCMnt')] 
+    restaurant_names = [restaurant_name.text for restaurant_name in soup.select(".place_bluelink")]
+    restaurant_menus = [restaurant_menu.text for restaurant_menu in soup.select(".KCMnt")]
 
     # 음식점 데이터를 저장할 딕셔너리 초기화
     restaurant_data = {}
 
     # 크롤링 진행 상황 표시
     print("----[Crawling Progress]----")
-    for i,name in enumerate(tqdm(restaurant_names, ncols=80, leave=False)):
-        RESTAURANT_CONTAINER = f"#_pcmap_list_scroll_container ul li:nth-child({i+1}) .MVx6e"
-        restaurant_rate = soup.select(f"{RESTAURANT_CONTAINER} .orXYY")
-        restaurant_program = soup.select(f"{RESTAURANT_CONTAINER} .V1dzc")
-        restaurant_review = soup.select(f"{RESTAURANT_CONTAINER} > span:nth-last-child(1)")
+    for i, name in enumerate(tqdm(restaurant_names, ncols=80, leave=False)):
+        restaurant_container = f"#_pcmap_list_scroll_container ul li:nth-child({i+1}) .MVx6e"
+        restaurant_rate = soup.select(f"{restaurant_container} .orXYY")
+        restaurant_program = soup.select(f"{restaurant_container} .V1dzc")
+        restaurant_review = soup.select(f"{restaurant_container} > span:nth-last-child(1)")
 
         restaurant_data[name] = {}
         restaurant_data[name]["menu"] = restaurant_menus[i]
 
         # 평점 정보가 없는 경우 None으로 설정
-        if restaurant_rate == []:
-            restaurant_data[name]["rate"] = None
-        else:
-            restaurant_data[name]["rate"] = float(restaurant_rate[0].text.lstrip("별점"))
+        restaurant_data[name]["rate"] = float(restaurant_rate[0].text.lstrip("별점")) if restaurant_data else None
 
         # 프로그램 정보가 없는 경우 None으로 설정
-        if restaurant_program == []:
-            restaurant_data[name]["program"] = None
-        else:
-            restaurant_data[name]["program"] = restaurant_program[0].text.lstrip("TV")
+        restaurant_data[name]["program"] = restaurant_program[0].text.lstrip("TV") if restaurant_program else None
 
         # 리뷰 정보가 없는 경우 None으로 설정, 오류 발생 시 재시도
         try:
-            restaurant_data[name]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip('+'))
+            restaurant_data[name]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip("+"))
         except ValueError:
             try:
-                restaurant_review = soup.select(f"{RESTAURANT_CONTAINER} > span:nth-last-child(2)")
-                restaurant_data[name]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip('+'))
+                restaurant_review = soup.select(f"{restaurant_container} > span:nth-last-child(2)")
+                restaurant_data[name]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip("+"))
             except ValueError:
                 restaurant_data[name]["review"] = None
 
@@ -116,19 +110,20 @@ def crawl(radius):
 
     # JSON 파일로 저장
     json_data = json.dumps(restaurant_data, indent=2, ensure_ascii=False)
-    with open(save_path, 'w', encoding="utf-8") as f:
+    with open(save_path, "w", encoding="utf-8") as f:
         f.write(json_data)
-    
+
     return save_path
 
-def crawl_school_meal():
+
+def crawl_school_meal() -> str:
     """
     오늘의 학교 급식 메뉴를 크롤링하여 JSON 파일로 저장하는 함수
-    
+
     Returns:
         str: 저장된 JSON 파일 경로
     """
-    
+
     # 현재 시간에 따라 급식 시간을 설정
     now = datetime.now()
     if 13 <= now.hour < 18:  # 13:00 ~ 18:00 사이
@@ -138,12 +133,12 @@ def crawl_school_meal():
 
     school_restaurant = "truly-wise"
     url = f"https://www.mealtify.com/univ/cau/{school_restaurant}/meal/today/{meal_time}"
-    
+
     # 크롬 웹드라이버 초기화
     driver = webdriver.Chrome()
     driver.get(url)
     time.sleep(3)
-    
+
     # 페이지 소스 가져오기
     html = driver.page_source
     soup = BeautifulSoup(html, "html.parser")
@@ -151,12 +146,12 @@ def crawl_school_meal():
 
     # 학교 급식 데이터를 저장할 딕셔너리 초기화
     school_restaurant_data = {}
-    
+
     # 급식 메뉴, 종류, 칼로리 추출
     school_menus = [school_menu.text for school_menu in soup.select(".pt-4 tbody tr td:nth-child(1)")[:-1]]
     school_types = [school_type.text for school_type in soup.select(".pt-4 tbody tr td:nth-child(2)")[:-1]]
     school_kcals = [school_kcal.text for school_kcal in soup.select(".pt-4 tbody tr td:nth-child(3)")[:-1]]
-    
+
     # 추출한 데이터를 딕셔너리에 저장
     for i, menu in enumerate(school_menus):
         school_restaurant_data[menu] = {"type": school_types[i], "kcal": school_kcals[i]}
@@ -164,10 +159,10 @@ def crawl_school_meal():
     # 현재 시간에 따라 파일 이름 설정
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
     save_path = f"school_meal_{current_time}.json"
-    
+
     # JSON 파일로 저장
     json_data = json.dumps(school_restaurant_data, indent=2, ensure_ascii=False)
-    with open(save_path, 'w', encoding="utf-8") as f:
+    with open(save_path, "w", encoding="utf-8") as f:
         f.write(json_data)
-    
+
     return save_path
