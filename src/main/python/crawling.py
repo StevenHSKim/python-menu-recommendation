@@ -4,7 +4,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 import time
 from datetime import datetime
-from tqdm import tqdm
 import json
 
 
@@ -79,7 +78,7 @@ def crawl(radius: str) -> str:
 
     # 크롤링 진행 상황 표시
     print("----[Crawling Progress]----")
-    for i, name in enumerate(tqdm(restaurant_names, ncols=80, leave=False)):
+    for i, name in enumerate(restaurant_names):
         restaurant_container = f"#_pcmap_list_scroll_container ul li:nth-child({i+1}) .MVx6e"
         restaurant_rate = soup.select(f"{restaurant_container} .orXYY")
         restaurant_program = soup.select(f"{restaurant_container} .V1dzc")
