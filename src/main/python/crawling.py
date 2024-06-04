@@ -199,3 +199,12 @@ def crawl_school_meal() -> str:
         f.write(json_data)
     
     return save_path
+
+
+if __name__ == "__main__":
+    # 음식점 크롤링 예시
+    radius = "15"  # 반경 15km
+    print(f"Crawled restaurant data saved to: {crawl(radius)}")
+
+    # 학식 크롤링 예시
+    print(f"Crawled school meal data saved to: {crawl_school_meal()}")
