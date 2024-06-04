@@ -1,1 +1,1 @@
-def crawl_school_meal()
+추천 결과에 만족하시나요?"

@@ -210,5 +210,3 @@ if __name__ == "__main__":
 
     # 학식 크롤링 예시
     print(f"Crawled school meal data saved to: {crawl_school_meal()}")
-
-crawl(15)

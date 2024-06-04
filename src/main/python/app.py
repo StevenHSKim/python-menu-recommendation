@@ -1,6 +1,7 @@
 import sys
 import os
 import random
+import glob
 from PyQt5.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QTextEdit, QRadioButton, QButtonGroup, QMessageBox, QProgressDialog, QDialog, QCheckBox, QDialogButtonBox)
 from PyQt5.QtCore import Qt, QTimer
 import crawling
@@ -8,6 +9,7 @@ import recommendation
 import classify_food
 from recommendation import FoodType, Menu
 from datetime import datetime
+import json
 
 
 class LoadingDialog(QProgressDialog):
@@ -65,9 +67,6 @@ class ResultDialog(QDialog):
     no_check = None
     buttons = None
 
-    """
-    추천 결과를 보여주는 대화 상자 클래스
-    """
     def __init__(self, recommendations, dessert_recommendations, parent=None):
         super().__init__(parent)
         self.setWindowTitle("추천 결과")
@@ -132,7 +131,7 @@ class ResultDialog(QDialog):
 
     def retry_recommendation(self):
         """
-        메뉴 추천을 다시 시도하는 함수
+        최신 분류된 데이터에서 랜덤으로 추천하는 함수
         """
         filename = recommendation.get_latest_classified_file()
         data = recommendation.load_data(filename)
@@ -149,8 +148,10 @@ class ResultDialog(QDialog):
             else:
                 recommendations.append(menu)
 
-        recommendations = random.sample(recommendations, 5)
-        dessert_recommendations = random.sample(dessert_recommendations, 2)
+        if len(recommendations) > 5:
+            recommendations = random.sample(recommendations, 5)
+        if len(dessert_recommendations) > 2:
+            dessert_recommendations = random.sample(dessert_recommendations, 2)
 
         new_dialog = ResultDialog(recommendations, dessert_recommendations, self)
         new_dialog.exec_()
@@ -169,51 +170,49 @@ class ResultDialog(QDialog):
         data = recommendation.load_data(school_meal_filename)
 
         recommendations = []
-        for name, details in data.items():
-            menu = Menu(name, description=details["type"], price=details["kcal"])
-            recommendations.append(menu)
+        for cafeteria, details in data.items():
+            if 'menu' in details:
+                for menu_name, info in details["menu"].items():
+                    menu = Menu(menu_name, description=info["type"])
+                    recommendations.append(menu)
+            else:
+                for sub_cafeteria in details.values():
+                    for menu_name, info in sub_cafeteria["menu"].items():
+                        menu = Menu(menu_name, description=info["type"])
+                        recommendations.append(menu)
 
-        new_dialog = SchoolMealResultDialog(recommendations, self)
+        new_dialog = SchoolMealResultDialog(data, self)
         new_dialog.exec_()
 
 
 class SchoolMealResultDialog(QDialog):
     yes_check = None
     no_check = None
-    satisfaction_button_group = None
     buttons = None
-
-    """
-    학교 급식 추천 결과를 보여주는 대화 상자 클래스
-    """
-    def __init__(self, recommendations, parent=None):
+    
+    def __init__(self, data, parent=None):
         super().__init__(parent)
         self.setWindowTitle("학식 추천 결과")
         self.setGeometry(100, 100, 800, 600)
-        self.recommendations = recommendations
+        self.data = data
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
 
-        result_str = "오늘 이런 학식은 어때요?\n"
-        result_str += "\n\n".join([f"{i+1}. {menu.name}\n설명: {menu.description}" for i, menu in enumerate(self.recommendations)])
+        result_str = self.format_school_meal_data(self.data)
 
         result_text = QTextEdit()
         result_text.setReadOnly(True)
         result_text.setText(result_str)
 
         layout.addWidget(result_text)
-
+        self.setLayout(layout)
         satisfaction_label = QLabel("추천 결과에 만족하시나요?")
         layout.addWidget(satisfaction_label)
 
-        self.yes_check = QRadioButton("예")
-        self.no_check = QRadioButton("아니오")
-
-        self.satisfaction_button_group = QButtonGroup(self)
-        self.satisfaction_button_group.addButton(self.yes_check)
-        self.satisfaction_button_group.addButton(self.no_check)
+        self.yes_check = QCheckBox("예")
+        self.no_check = QCheckBox("아니오")
 
         layout.addWidget(self.yes_check)
         layout.addWidget(self.no_check)
@@ -224,6 +223,31 @@ class SchoolMealResultDialog(QDialog):
 
         layout.addWidget(self.buttons)
         self.setLayout(layout)
+
+    def format_school_meal_data(self, data):
+        result_str = ""
+        for cafeteria, details in data.items():
+            if "menu" in details:
+                result_str += f"{cafeteria}:\n메뉴:\n"
+                for menu, info in details["menu"].items():
+                    result_str += f"{menu}\n"
+            else:
+                for sub_cafeteria, sub_details in details.items():
+                    result_str += f"{cafeteria} 메뉴 {sub_cafeteria}:\n"
+                    for menu, info in sub_details["menu"].items():
+                        result_str += f"{menu}\n"
+            result_str += "\n"
+        return result_str
+    
+    def format_menu(self, index, menu):
+        """
+        메뉴 포맷을 설정하는 함수
+        """
+        menu_str = f"{index + 1}. {menu.name} ({menu.food_type})\n"
+        menu_str += "메뉴:\n"
+        for dish in menu.description.split(", "):
+            menu_str += f"{dish}\n"
+        return menu_str
 
     def on_accept(self):
         if self.yes_check.isChecked():
@@ -237,18 +261,37 @@ class SchoolMealResultDialog(QDialog):
                     self.retry_recommendation()
                 elif re_recommendation_dialog.cafeteria_check.isChecked():
                     self.recommend_school_meal()
-
+    
     def retry_recommendation(self):
         """
-        기존 학식 데이터를 랜덤으로 재추천하는 함수
+        최신 분류된 데이터에서 랜덤으로 추천하는 함수
         """
-        recommendations = random.sample(self.recommendations, min(5, len(self.recommendations)))
-        new_dialog = SchoolMealResultDialog(recommendations, self)
+        filename = recommendation.get_latest_classified_file()
+        data = recommendation.load_data(filename)
+
+        recommendations = []
+        dessert_recommendations = []
+
+        for name, details in data.items():
+            food_type_str = details["category"]
+            food_type = next(e for e in FoodType if e.value[1] == food_type_str)
+            menu = Menu(name, food_type, description=details["menu"], price=None)
+            if food_type == FoodType.DESSERT:
+                dessert_recommendations.append(menu)
+            else:
+                recommendations.append(menu)
+
+        if len(recommendations) > 5:
+            recommendations = random.sample(recommendations, 5)
+        if len(dessert_recommendations) > 2:
+            dessert_recommendations = random.sample(dessert_recommendations, 2)
+
+        new_dialog = ResultDialog(recommendations, dessert_recommendations, self)
         new_dialog.exec_()
 
     def recommend_school_meal(self):
         """
-        학교 급식 정보를 가져와서 추천하는 함수
+        학교 급식을 추천하는 함수
         """
         progress_dialog = LoadingDialog("학식 정보를 가져오는 중입니다...", self)
         progress_dialog.show()
@@ -260,13 +303,20 @@ class SchoolMealResultDialog(QDialog):
         data = recommendation.load_data(school_meal_filename)
 
         recommendations = []
-        for category, details in data.items():
-            for name, info in details["menu"].items():
-                menu = Menu(name, description=info["type"])
-                recommendations.append(menu)
+        for cafeteria, details in data.items():
+            if 'menu' in details:
+                for menu_name, info in details["menu"].items():
+                    menu = Menu(menu_name, description=info["type"])
+                    recommendations.append(menu)
+            else:
+                for sub_cafeteria in details.values():
+                    for menu_name, info in sub_cafeteria["menu"].items():
+                        menu = Menu(menu_name, description=info["type"])
+                        recommendations.append(menu)
 
-        new_dialog = SchoolMealResultDialog(recommendations, self)
+        new_dialog = SchoolMealResultDialog(data, self)
         new_dialog.exec_()
+
 
 
 class MenuRecommendationApp(QWidget):
