@@ -1,4 +1,9 @@
-# BP-18
+# Basic Programming - Team18
+### Description
+“Location-based menu recommendations for CAU students” with user location-based menu recommendation option and CAU cafeteria menu recommendation option.
+
+<img width="800" alt="image" src="https://github.com/StevenHSKim/python-menu-recommendation/assets/102468317/59f18a23-a556-42af-b24b-e4d8f7ee46d2">
+
 
 ### Dependencies
 
