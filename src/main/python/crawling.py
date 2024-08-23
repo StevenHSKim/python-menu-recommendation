@@ -2,6 +2,8 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import time
 from datetime import datetime
 import requests
@@ -19,41 +21,50 @@ def crawl(radius: int) -> str:
         str: 저장된 JSON 파일 경로
     """
 
-    # 크롤링 과정 보이지 않도록 하는 옵션
+    ## 원격 크롬 드라이버 설정
     options = webdriver.ChromeOptions()
-    options.add_argument('headless')
-    options.add_argument("--start-maximized")
-    options.add_argument("--window-size=1920,1080")
+    options.add_argument('--headless') 
+    options.add_argument('--ignore-ssl-errors=yes')
+    options.add_argument('--ignore-certificate-errors')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--log-level=3')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--incognito')
 
-    # 크롬 웹드라이버 초기화
+    # 로딩 시간 줄이기 위한 이미지 로딩 비활성화
+    options.add_argument('--disable-images')
+    options.add_experimental_option(
+        "prefs", {'profile.managed_default_content_settings.images': 2})
+    options.add_argument('--blink-settings=imagesEnabled=false')
+    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.200'
+    options.add_argument(f'user-agent={user_agent}')
+
+    # 크롬 웹 드라이버 실행
     driver = webdriver.Chrome(options=options)
 
     # 네이버 지도 URL 설정 (반경 반영)
-    url = f"https://map.naver.com/p?c={radius},0,0,0,dh"
+    url = f"https://map.naver.com/p/search/음식점?c={radius},0,0,0,dh"
     driver.get(url)
     driver.maximize_window()
 
     # 페이지 로드 대기
-    time.sleep(3)
-
-    # '음식점' 버튼 클릭
-    restaurant_btn = driver.find_element(By.CSS_SELECTOR, ".item_bubble_keyword:first-child button")
-    restaurant_btn.send_keys(Keys.ENTER)
-    time.sleep(2)
+    time.sleep(1)
 
     # 검색 결과 iframe으로 전환
     driver.switch_to.frame("searchIframe")
-    time.sleep(1)
+    # 옵션 버튼이 등장할 때까지 대기(명시적 대기)
+    WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "._restaurant_filter_item:first-child > a")) 
+    )
 
     # 옵션 버튼 클릭
     option_btn = driver.find_element(By.CSS_SELECTOR, "._restaurant_filter_item:first-child > a")
     option_btn.send_keys(Keys.ENTER)
-    time.sleep(1)
 
-    # '많은 순' 버튼 클릭
+    # '인기 많은 순' 버튼 클릭
     most_btn = driver.find_element(By.CSS_SELECTOR, "#_popup_rank+div > span:first-child > a")
     most_btn.send_keys(Keys.ENTER)
-    time.sleep(1)
 
     # '영업 중' 버튼 클릭
     working_btn = driver.find_element(By.CSS_SELECTOR, "#_popup_property+div > span:first-child > a")
@@ -62,7 +73,7 @@ def crawl(radius: int) -> str:
     # 검색 결과 버튼 클릭
     result_btn = driver.find_element(By.CSS_SELECTOR, ".qeVvz a:last-child")
     result_btn.send_keys(Keys.ENTER)
-    time.sleep(1.5)
+    time.sleep(1)
 
     # 스크롤 다운하여 추가 데이터 로드
     for _ in range(10):
