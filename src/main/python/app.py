@@ -41,6 +41,10 @@ class ReRecommendationDialog(QDialog):
         self.retry_check = QCheckBox("다시 추천해줘")
         self.cafeteria_check = QCheckBox("그럼 학식은 어떠세요?")
 
+        re_groupcheck = QButtonGroup(self)
+        re_groupcheck.addButton(self.retry_check)
+        re_groupcheck.addButton(self.cafeteria_check)
+
         layout.addWidget(self.retry_check)
         layout.addWidget(self.cafeteria_check)
 
@@ -83,6 +87,10 @@ class ResultDialog(QDialog):
 
         self.yes_check = QCheckBox("예")
         self.no_check = QCheckBox("아니오")
+
+        result_group = QButtonGroup(self)
+        result_group.addButton(self.yes_check)
+        result_group.addButton(self.no_check)
 
         layout.addWidget(self.yes_check)
         layout.addWidget(self.no_check)
@@ -196,6 +204,10 @@ class SchoolMealResultDialog(QDialog):
         self.yes_check = QCheckBox("예")
         self.no_check = QCheckBox("아니오")
 
+        school_group = QButtonGroup(self)
+        school_group.addButton(self.yes_check)
+        school_group.addButton(self.no_check)
+        
         layout.addWidget(self.yes_check)
         layout.addWidget(self.no_check)
 
