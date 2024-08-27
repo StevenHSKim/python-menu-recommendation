@@ -54,7 +54,7 @@ def load_data(filename: str) -> Any:
 
 
 # 음식 섭취 기록을 기반으로 가중치를 계산하는 함수
-def calculate_weights(food_history: dict[str, List[FoodType]]) -> dict[FoodType, int]:
+def calculate_weights(food_history: Dict[str, List[FoodType]]) -> Dict[FoodType, int]:
     weights = {food_type: 0 for food_type in FoodType}
     weight_values = {"1일 전": 3, "2일 전": 2, "3일 전": 1}
 
@@ -66,7 +66,7 @@ def calculate_weights(food_history: dict[str, List[FoodType]]) -> dict[FoodType,
 
 
 # 데이터를 기반으로 가중치를 적용하는 함수
-def apply_weights(data: dict[str, Any], weights: dict[FoodType, int]):
+def apply_weights(data: Dict[str, Any], weights: Dict[FoodType, int]):
     for restaurant, details in data.items():
         food_type_str = details["category"]
         food_type = next(e for e in FoodType if e.value[1] == food_type_str)
@@ -90,7 +90,7 @@ def get_latest_classified_file() -> str:
 
 
 # 추천을 생성하는 함수
-def get_recommendations(food_history: dict[str, list[FoodType]]) -> tuple[list[Menu], list[Menu]]:
+def get_recommendations(food_history: Dict[str, List[FoodType]]) -> Tuple[List[Menu], List[Menu]]:
     filename = get_latest_classified_file()
     if not os.path.exists(filename):
         raise FileNotFoundError(f"No data file found: {filename}")
