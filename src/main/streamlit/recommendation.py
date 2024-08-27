@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import *
 import json
 import os
 import random
@@ -16,26 +15,26 @@ class FoodType(Enum):
     OTHER = (7, "그외")
 
     @staticmethod
-    def value_of(value: int):
+    def value_of(value):
         for e in FoodType:
             if e.value[0] == value:
                 return e
         raise ValueError(f"No such type: {value}")
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.value[1]
 
 
 class Menu:
-    def __init__(self, name: str, food_type: FoodType = None, description: str = None, price: int = None):
-        self.name: Final[str] = name
-        self.food_type: Final[FoodType | None] = food_type
-        self.description: Final[str | None] = description
-        self.price: Final[int | None] = price
-        self.weight: int = 0  # 가중치 초기값
+    def __init__(self, name, food_type=None, description=None, price=None):
+        self.name = name
+        self.food_type = food_type
+        self.description = description
+        self.price = price
+        self.weight = 0  # 가중치 초기값
 
-    def __str__(self) -> str:
-        result: str = f"{self.name}"
+    def __str__(self):
+        result = f"{self.name}"
         if self.food_type is not None:
             result += f" ({self.food_type})"
         if self.description is not None:
@@ -47,14 +46,14 @@ class Menu:
 
 
 # JSON 파일에서 데이터를 로드하는 함수
-def load_data(filename: str) -> Any:
+def load_data(filename):
     with open(filename, "r", encoding="utf-8") as file:
         data = json.load(file)
     return data
 
 
 # 음식 섭취 기록을 기반으로 가중치를 계산하는 함수
-def calculate_weights(food_history: Dict[str, List[FoodType]]) -> Dict[FoodType, int]:
+def calculate_weights(food_history):
     weights = {food_type: 0 for food_type in FoodType}
     weight_values = {"1일 전": 3, "2일 전": 2, "3일 전": 1}
 
@@ -66,7 +65,7 @@ def calculate_weights(food_history: Dict[str, List[FoodType]]) -> Dict[FoodType,
 
 
 # 데이터를 기반으로 가중치를 적용하는 함수
-def apply_weights(data: Dict[str, Any], weights: Dict[FoodType, int]):
+def apply_weights(data, weights):
     for restaurant, details in data.items():
         food_type_str = details["category"]
         food_type = next(e for e in FoodType if e.value[1] == food_type_str)
@@ -83,14 +82,14 @@ def apply_weights(data: Dict[str, Any], weights: Dict[FoodType, int]):
 
 
 # 최신 분류된 파일을 가져오는 함수
-def get_latest_classified_file() -> str:
+def get_latest_classified_file():
     list_of_files = glob.glob("classified_data_*.json")
     latest_file = max(list_of_files, key=os.path.getmtime)
     return latest_file
 
 
 # 추천을 생성하는 함수
-def get_recommendations(food_history: Dict[str, List[FoodType]]) -> Tuple[List[Menu], List[Menu]]:
+def get_recommendations(food_history):
     filename = get_latest_classified_file()
     if not os.path.exists(filename):
         raise FileNotFoundError(f"No data file found: {filename}")
