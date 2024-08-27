@@ -10,18 +10,18 @@ import requests
 import json
 
 
-def crawl(radius: int) -> str:
+def crawl(radius):
     """
     지정한 반경 내의 음식점 정보를 크롤링하여 JSON 파일로 저장하는 함수
 
     Parameters:
-        radius (int): 크롤링할 반경
+        radius: 크롤링할 반경
 
     Returns:
-        str: 저장된 JSON 파일 경로
+        저장된 JSON 파일 경로
     """
 
-    ## 원격 크롬 드라이버 설정
+    # 원격 크롬 드라이버 설정
     options = webdriver.ChromeOptions()
     options.add_argument('--headless') 
     options.add_argument('--ignore-ssl-errors=yes')
@@ -55,7 +55,7 @@ def crawl(radius: int) -> str:
     driver.switch_to.frame("searchIframe")
     # 옵션 버튼이 등장할 때까지 대기(명시적 대기)
     WebDriverWait(driver, 30).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "._restaurant_filter_item:first-child > a")) 
+        EC.presence_of_element_located((By.CSS_SELECTOR, "._restaurant_filter_item:first-child > a"))
     )
 
     # 옵션 버튼 클릭
@@ -138,15 +138,15 @@ def crawl(radius: int) -> str:
     return save_path
 
 
-def school_meal_crawler(place) -> dict:
+def school_meal_crawler(place):
     """
     학식 정보를 크롤링하여 dictionary에 담아주는 함수
 
     Parameters:
-        place (str): 크롤링 할 학교 식당
+        place: 크롤링 할 학교 식당
 
     Returns:
-        dict: 학식 정보를 담은 dictionary
+        학식 정보를 담은 dictionary
     """
 
     # 학교 식당, 시간대를 반영하여 mealtify 웹페이지 접속 후 html parsing
@@ -187,12 +187,13 @@ def school_meal_crawler(place) -> dict:
 
     return school_return_data
 
-def crawl_school_meal() -> str:
+
+def crawl_school_meal():
     """
     오늘의 학교 급식 메뉴를 크롤링하여 JSON 파일로 저장하는 함수
 
     Returns:
-        str: 저장된 JSON 파일 경로
+        저장된 JSON 파일 경로
     """
 
     # JSON에 저장할 dictionary
