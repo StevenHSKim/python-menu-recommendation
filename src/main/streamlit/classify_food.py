@@ -1,18 +1,13 @@
 import openai
 import json
 from datetime import datetime
-from typing import Dict, Any
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # OpenAI API 키 설정
-# 1. OpenAI API 계정 생성: https://platform.openai.com/signup
-# 2. 신용카드 등록 <- 이거 안 하면 아마 오류 발생할거에요. (등록시 $5 소요 - 앞으로 AI학과 재학중에 쓸 일 많으실 겁니다)
-# 3. API 키 발급: https://platform.openai.com/account/api-keys
-# 4. 발급받은 API 키를 아래 your_openai.api_key에 설정
 openai.api_key = "your_openai_api_key"
 
 
-def classify_food_type(restaurant_name: str, menu: str) -> str:
+def classify_food_type(restaurant_name, menu):
     """
     GPT API를 사용하여 음식 카테고리를 분류합니다.
 
@@ -57,12 +52,12 @@ def classify_food_type(restaurant_name: str, menu: str) -> str:
     return category
 
 
-def post_process_category(details: dict[str, Any]) -> str:
+def post_process_category(details):
     """
     메뉴 설명을 기반으로 카테고리를 후처리합니다.
 
     Parameters:
-        details (Dict[str, Any]): 메뉴 설명을 포함한 음식점 세부 정보
+        details (dict): 메뉴 설명을 포함한 음식점 세부 정보
 
     Returns:
         str: 후처리된 음식 카테고리
@@ -78,16 +73,16 @@ def post_process_category(details: dict[str, Any]) -> str:
     return details["category"]
 
 
-def process_restaurant(restaurant: str, details: dict[str, Any]) -> (str, dict[str, Any]):
+def process_restaurant(restaurant, details):
     """
     개별 식당의 카테고리를 분류하고 후처리합니다.
 
     Parameters:
         restaurant (str): 식당 이름
-        details (Dict[str, Any]): 메뉴 설명을 포함한 음식점 세부 정보
+        details (dict): 메뉴 설명을 포함한 음식점 세부 정보
 
     Returns:
-        (str, Dict[str, Any]): 식당 이름과 갱신된 세부 정보
+        tuple: 식당 이름과 갱신된 세부 정보
     """
     try:
         # 음식 카테고리 분류
@@ -102,7 +97,7 @@ def process_restaurant(restaurant: str, details: dict[str, Any]) -> (str, dict[s
     return restaurant, details
 
 
-def process_restaurants(input_file: str):
+def process_restaurants(input_file):
     """
     입력 파일에서 식당 데이터를 읽고, 카테고리를 분류하여 출력 파일에 저장합니다.
 
