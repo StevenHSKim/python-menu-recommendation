@@ -40,11 +40,16 @@ def input_page():
     st.title("CAU 위치-기반 메뉴 추천 프로그램")
     st.subheader("CAU Location-Based Menu Recommendation Program")
     st.write("---")
-    st.write("### 이동 방법을 선택하세요")
-    radius = st.radio(
-        "이동 방법을 선택해주세요:",
-        ["근처로 걸어가고 싶어요 (1km)", "조금 더 걸어가도 돼요 (2km)", "차를 타고 이동할거에요 (10km)"]
+    st.write("### 이동 반경을 선택하세요")
+    # radius = st.radio(
+    #     "이동 방법을 선택해주세요:",
+    #     ["근처로 걸어가고 싶어요 (1km)", "조금 더 걸어가도 돼요 (2km)", "차를 타고 이동할거에요 (10km)"]
+    # )
+    radius = st.slider(
+        "이동 반경을 선택해주세요 (11:약 10km, 15:약 1km):",
+        min_value=11, max_value=15, value=11, step=1
     )
+
 
     food_types = ["한식", "중식", "일식", "양식", "아시안", "디저트", "그외"]
     meals = ["아침", "점심", "저녁"]
@@ -61,13 +66,19 @@ def input_page():
                 food_history[day].append(FoodType.value_of(food_types.index(selected_food_type) + 1))
 
     # 메뉴 추천 버튼
+    # if st.button("메뉴 추천"):
+    #     if any(food_history.values()):
+    #         radius_map = {"근처로 걸어가고 싶어요 (1km)": 15, "조금 더 걸어가도 돼요 (2km)": 14, "차를 타고 이동할거에요 (10km)": 11}
+    #         radius_value = radius_map[radius]
+    #         crawl_and_classify(radius_value, food_history)
+    #     else:
+    #         st.warning("최근 3일 동안 먹은 음식 종류를 선택해주세요.")
     if st.button("메뉴 추천"):
         if any(food_history.values()):
-            radius_map = {"근처로 걸어가고 싶어요 (1km)": 15, "조금 더 걸어가도 돼요 (2km)": 14, "차를 타고 이동할거에요 (10km)": 11}
-            radius_value = radius_map[radius]
-            crawl_and_classify(radius_value, food_history)
+            crawl_and_classify(radius, food_history)
         else:
             st.warning("최근 3일 동안 먹은 음식 종류를 선택해주세요.")
+
 
 # 크롤링 및 데이터 분류 작업 수행
 def crawl_and_classify(radius, food_history):
