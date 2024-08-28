@@ -15,10 +15,10 @@ def crawl(radius):
     지정한 반경 내의 음식점 정보를 크롤링하여 JSON 파일로 저장하는 함수
 
     Parameters:
-        radius: 크롤링할 반경
+        radius (int): 크롤링할 반경
 
     Returns:
-        저장된 JSON 파일 경로
+        str: 저장된 JSON 파일 경로
     """
 
     # 원격 크롬 드라이버 설정
@@ -29,31 +29,34 @@ def crawl(radius):
     options.add_argument('--disable-dev-shm-usage')
     options.add_argument('--no-sandbox')
     options.add_argument('--log-level=3')
-    options.add_argument('--disable-gpu')
     options.add_argument('--incognito')
-
-    # 로딩 시간 줄이기 위한 이미지 로딩 비활성화
     options.add_argument('--disable-images')
     options.add_experimental_option(
         "prefs", {'profile.managed_default_content_settings.images': 2})
     options.add_argument('--blink-settings=imagesEnabled=false')
     user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.200'
     options.add_argument(f'user-agent={user_agent}')
-
+    
     # 크롬 웹 드라이버 실행
     driver = webdriver.Chrome(options=options)
-
+    
     # 네이버 지도 URL 설정 (반경 반영)
-    url = f"https://map.naver.com/p/search/음식점?c={radius},0,0,0,dh"
+    url = f"https://map.naver.com/p?c={radius},0,0,0,dh"
     driver.get(url)
     driver.maximize_window()
-
-    # 페이지 로드 대기
+    
+    # 검색창에 음식점 검색
+    search_box = WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "input.input_search"))
+    )
+    search_box.send_keys("음식점")
+    search_box.send_keys(Keys.RETURN)
+    
     time.sleep(1)
 
     # 검색 결과 iframe으로 전환
     driver.switch_to.frame("searchIframe")
-    # 옵션 버튼이 등장할 때까지 대기(명시적 대기)
+    # 옵션 버튼이 등장할 때까지 대기
     WebDriverWait(driver, 30).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "._restaurant_filter_item:first-child > a"))
     )
@@ -79,52 +82,63 @@ def crawl(radius):
     for _ in range(10):
         element = driver.find_elements(By.CSS_SELECTOR, "#_pcmap_list_scroll_container > ul > li")[-1]
         driver.execute_script("arguments[0].scrollIntoView(true);", element)
-
-    # 페이지 소스 가져오기
-    html = driver.page_source
-    soup = BeautifulSoup(html, "html.parser")
-
-    # 드라이버 종료
-    driver.quit()
-
-    # 음식점 이름과 메뉴 추출
+    
+    # 페이지의 HTML 가져오기
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
+    
+    # 음식점 이름, 메뉴, 평점, 프로그램 출연 정보, 리뷰 수 등 크롤링
     restaurant_names = [restaurant_name.text for restaurant_name in soup.select(".place_bluelink")]
     restaurant_menus = [restaurant_menu.text for restaurant_menu in soup.select(".KCMnt")]
-
+    
     # 음식점 데이터를 저장할 딕셔너리 초기화
     restaurant_data = {}
+    
+    # CSS 셀렉터를 한 번에 사용하여 필요한 데이터를 추출
+    restaurant_containers = soup.select("#_pcmap_list_scroll_container ul li .MVx6e")
 
-    # 평점, 프로그램 출연 정보, 리뷰 수 크롤링
     for i, name in enumerate(restaurant_names):
-        restaurant_container = f"#_pcmap_list_scroll_container ul li:nth-child({i+1}) .MVx6e"
-        restaurant_rate = soup.select(f"{restaurant_container} .orXYY")
-        restaurant_program = soup.select(f"{restaurant_container} .V1dzc")
-        restaurant_review = soup.select(f"{restaurant_container} > span:nth-last-child(1)")
+        container = restaurant_containers[i]
+
+        # 음식점 정보를 추출
+        rate_element = container.select_one(".orXYY")
+        program_element = container.select_one(".V1dzc")
+        
+        # 리뷰 요소를 정확히 선택하기 위해 '리뷰' 텍스트가 포함된 span을 검색
+        review_element = None
+        for span in container.select("span"):
+            if "리뷰" in span.text:
+                review_element = span
+                break
 
         restaurant_data[name] = {}
         restaurant_data[name]["menu"] = restaurant_menus[i]
 
         # 평점 정보가 없는 경우 None으로 설정
-        if restaurant_rate == []:
+        if rate_element is None:
             restaurant_data[name]["rate"] = None
         else:
-            restaurant_data[name]["rate"] = float(restaurant_rate[0].text.lstrip("별점"))
+            try:
+                restaurant_data[name]["rate"] = float(rate_element.text.lstrip("별점"))
+            except ValueError:
+                restaurant_data[name]["rate"] = None
 
         # 프로그램 정보가 없는 경우 None으로 설정
-        if restaurant_program == []:
+        if program_element is None:
             restaurant_data[name]["program"] = None
         else:
-            restaurant_data[name]["program"] = restaurant_program[0].text.lstrip("TV")
+            restaurant_data[name]["program"] = program_element.text.lstrip("TV")
 
         # 리뷰 정보가 없는 경우 None으로 설정, 오류 발생 시 재시도
         try:
-            restaurant_data[name]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip("+"))
-        except ValueError:
-            try:
-                restaurant_review = soup.select(f"{restaurant_container} > span:nth-last-child(2)")
-                restaurant_data[name]["review"] = int(restaurant_review[0].text.lstrip("리뷰 ").rstrip("+"))
-            except ValueError:
+            if review_element:
+                review_text = review_element.text.lstrip("리뷰 ").rstrip("+")
+                restaurant_data[name]["review"] = int(review_text) if review_text.isdigit() else None
+            else:
                 restaurant_data[name]["review"] = None
+        except ValueError:
+            restaurant_data[name]["review"] = None
+
+    driver.quit()
 
     # 현재 시간에 따라 파일 이름 설정
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -134,7 +148,7 @@ def crawl(radius):
     json_data = json.dumps(restaurant_data, indent=2, ensure_ascii=False)
     with open(save_path, "w", encoding="utf-8") as f:
         f.write(json_data)
-
+    
     return save_path
 
 
