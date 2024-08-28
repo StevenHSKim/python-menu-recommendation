@@ -114,6 +114,10 @@ def get_recommendations(food_history):
     recommendations.sort(key=lambda x: x.weight, reverse=True)
     dessert_recommendations.sort(key=lambda x: x.weight, reverse=True)
 
+    # 결과 출력 전에 디저트 데이터가 올바르게 채워져 있는지 확인
+    if not dessert_recommendations:
+        print("디저트 추천이 비어 있습니다.")
+
     # 가중치가 높은 상위 3개 추천
     top_recommendations = recommendations[:3]
 
@@ -127,3 +131,24 @@ def get_recommendations(food_history):
     top_dessert_recommendations = dessert_recommendations[:2]
 
     return top_recommendations, top_dessert_recommendations
+
+def get_random_recommendations(filename):
+    data = load_data(filename)
+    
+    meals = []
+    desserts = []
+    
+    for name, details in data.items():
+        food_type_str = details["category"]
+        food_type = next(e for e in FoodType if e.value[1] == food_type_str)
+        menu = Menu(name, food_type, description=details["menu"], price=None)
+        
+        if food_type == FoodType.DESSERT:
+            desserts.append(menu)
+        else:
+            meals.append(menu)
+    
+    random_meals = random.sample(meals, min(5, len(meals)))
+    random_desserts = random.sample(desserts, min(2, len(desserts)))
+    
+    return random_meals, random_desserts
