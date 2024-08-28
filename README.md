@@ -4,6 +4,13 @@
 
 <img width="800" alt="image" src="https://github.com/StevenHSKim/python-menu-recommendation/assets/102468317/59f18a23-a556-42af-b24b-e4d8f7ee46d2">
 
+### Run on Web (Streamlit)
+
+To run this program on the web, run the code below in your terminal.
+
+```bash
+streamlit run ./app_streamlit.py
+```
 
 ### Dependencies
 
