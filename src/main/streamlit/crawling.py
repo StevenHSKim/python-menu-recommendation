@@ -31,9 +31,6 @@ def crawl(radius):
     options.add_argument('--log-level=3')
     options.add_argument('--incognito')
     options.add_argument('--disable-images')
-    options.add_experimental_option(
-        "prefs", {'profile.managed_default_content_settings.images': 2})
-    options.add_argument('--blink-settings=imagesEnabled=false')
     user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.200'
     options.add_argument(f'user-agent={user_agent}')
     
