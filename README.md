@@ -10,7 +10,7 @@
 
 ### To work properly (paid)
 
-1. Put your OpenAI API Key in classify_food.py.
+1. Put your OpenAI API Key in `classify_food.py`.
 2. Run `app.py`.
 
 ### Just check operation (free)
@@ -24,7 +24,7 @@ Food is not being classified correctly and is all in the 'other' category.
 1. Create an OpenAI API account: [https://platform.openai.com/signup](https://platform.openai.com/signup)
 2. Register a credit card ← If you use the key without registering, you will get an error. (First registration costs $5)
 3. Get an API key: [https://platform.openai.com/account/api-keys](https://platform.openai.com/account/api-keys)
-4. Write your secret API key to your_openai.api_key in classify_food.py.
+4. Write your secret API key to your_openai.api_key in `classify_food.py`.
 
 ```python
 openai.api_key = “your_openai_api_key”
