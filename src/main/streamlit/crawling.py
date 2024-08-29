@@ -75,10 +75,35 @@ def crawl(radius):
     result_btn.send_keys(Keys.ENTER)
     time.sleep(1)
 
-    # 스크롤 다운하여 추가 데이터 로드
-    for _ in range(10):
-        element = driver.find_elements(By.CSS_SELECTOR, "#_pcmap_list_scroll_container > ul > li")[-1]
-        driver.execute_script("arguments[0].scrollIntoView(true);", element)
+    # 스크롤 전에 마지막 요소 수 저장
+    previous_height = len(driver.find_elements(By.CSS_SELECTOR, "#_pcmap_list_scroll_container > ul > li"))
+
+    # 기다리는 시간 설정
+    wait = WebDriverWait(driver, 10)
+    while True:
+        try:
+            # 리스트의 마지막 요소 찾기
+            element = driver.find_elements(By.CSS_SELECTOR, "#_pcmap_list_scroll_container > ul > li")[-1]
+            
+            # 해당 요소가 보일 때까지 스크롤
+            driver.execute_script("arguments[0].scrollIntoView(true);", element)
+            
+            # 페이지가 스크롤된 후 새로운 요소가 추가되었는지 확인
+            wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "#_pcmap_list_scroll_container > ul > li:nth-child({})".format(previous_height + 1))))
+            
+            # 새로운 요소의 수를 계산
+            new_height = len(driver.find_elements(By.CSS_SELECTOR, "#_pcmap_list_scroll_container > ul > li"))
+            
+            # 새로운 요소가 더 이상 추가되지 않으면 종료
+            if new_height == previous_height:
+                break
+            
+            # 스크롤 전 요소 수를 업데이트
+            previous_height = new_height
+            
+        except Exception as e:
+            print(f"스크롤 중 오류 발생: {e}")
+            break
     
     # 페이지의 HTML 가져오기
     soup = BeautifulSoup(driver.page_source, 'html.parser')
