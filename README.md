@@ -2,7 +2,7 @@
 ### Description
 “Location-based menu recommendations for CAU students” with user location-based menu recommendation option and CAU cafeteria menu recommendation option.
 
-<img width="800" alt="image" src="https://github.com/StevenHSKim/python-menu-recommendation/assets/102468317/59f18a23-a556-42af-b24b-e4d8f7ee46d2"><br>
+<img alt="image" src="https://github.com/user-attachments/assets/7d63be67-5575-4f4d-8ae3-56282bcb2552"><br>
 
 <br>
 
