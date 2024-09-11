@@ -174,71 +174,117 @@ def crawl(radius):
     return save_path
 
 
-def school_meal_crawler(place):
-    """
-    학식 정보를 크롤링하여 dictionary에 담아주는 함수
-
-    Parameters:
-        place: 크롤링 할 학교 식당
-
-    Returns:
-        학식 정보를 담은 dictionary
-    """
-
-    # 학교 식당, 시간대를 반영하여 mealtify 웹페이지 접속 후 html parsing
-    url = f"https://www.mealtify.com/univ/cau/{place}/meal/today"
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, "html.parser")
-
-    # 학식 메뉴와 메뉴의 타입을 크롤링하여 리스트에 저장
-    school_menus = [school_menu.text for school_menu in soup.select(".pt-4 tbody tr td:nth-child(1)")]
-    school_types = [school_type.text for school_type in soup.select(".pt-4 tbody tr td:nth-child(1)")]
-
-    # 만일 참슬기식당이라면 특식과 한식을 나누어 dictionary에 저장
-    if place == "truly-wise":
-        school_return_data = {
-            "A": {
-                "menu": {}
-            },
-            "B": {
-                "menu": {}
-            }
-        }
-        kind_of_menu = "A"
-
-        for i, menu in enumerate(school_menus):
-            if "총 칼로리" in menu:
-                kind_of_menu = "B"
-                continue
-            school_return_data[kind_of_menu]["menu"][menu] = {"type": school_types[i]}
-    else:
-        school_return_data = {
-            "menu": {}
-        }
-
-        for i, menu in enumerate(school_menus):
-            if "총 칼로리" in menu:
-                continue
-            school_return_data["menu"][menu] = {"type": school_types[i]}
-
-    return school_return_data
-
-
 def crawl_school_meal():
-    """
-    오늘의 학교 급식 메뉴를 크롤링하여 JSON 파일로 저장하는 함수
-
-    Returns:
-        저장된 JSON 파일 경로
-    """
-
+    
     # JSON에 저장할 dictionary
     school_restaurant_data = {}
 
-    # 학교 식당 별 학식 정보 크롤링 후 dictionary에 저장
-    school_restaurant_data["생활관식당(블루미르308관)"] = school_meal_crawler('blue-308')
-    school_restaurant_data["생활관식당(블루미르309관)"] = school_meal_crawler('blue-309')
-    school_restaurant_data["참슬기식당(310관 B4층)"] = school_meal_crawler('truly-wise')
+    options = webdriver.ChromeOptions()
+    # options.add_argument('--headless') 
+    options.add_argument('--ignore-ssl-errors=yes')
+    options.add_argument('--ignore-certificate-errors')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--log-level=3')
+    options.add_argument('--incognito')
+    options.add_argument('--disable-images')
+    user_agent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.200'
+    options.add_argument(f'user-agent={user_agent}')
+    
+    # 크롬 웹 드라이버 실행
+    driver = webdriver.Chrome(options=options)
+    driver.get('https://chat.cau.ac.kr/v2/index.html')
+
+    WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "#root > div > div > div.chat_container > div > div > div:nth-child(1) > div > div > div.card > div:nth-child(3) > div > div > ul:nth-child(1) > li:nth-child(2) > a"))
+    )
+
+    school_meal_tab = driver.find_element(By.CSS_SELECTOR, "#root > div > div > div.chat_container > div > div > div:nth-child(1) > div > div > div.card > div:nth-child(3) > div > div > ul:nth-child(1) > li:nth-child(2) > a")
+    school_meal_tab.click()
+
+    WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, "#root > div > div > div.chat_container > div > div > div:nth-child(3) > div:nth-child(3) > div > div > div > div:nth-child(1) > div"))
+    )
+
+    time_now = datetime.now()
+
+    if time_now.hour <= 10:
+        time_num = 1
+    elif time_now.hour > 10 or time_now.hour <= 15:
+        time_num = 2
+        n = 4
+    else:
+        time_num = 3
+        n = 3
+    
+    meal_time = driver.find_element(By.CSS_SELECTOR, f"#root > div > div > div.chat_container > div > div > div:nth-child(3) > div:nth-child(3) > div > div > div > div:nth-child(1) > div > div > a:nth-child({time_num})")
+    meal_time.click()
+
+    if time_num==1:
+        WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#root > div > div > div.chat_container > div > div > div:nth-child(5) > div.bubble_box > div > span"))
+        )
+
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+
+        meal_data = soup.select_one("#root > div > div > div.chat_container > div > div > div:nth-child(5) > div.bubble_box > div > span").text
+
+        # '-' 뒤에 있는 부분을 찾음
+        fixed_part = "-"
+        menu_start_index = meal_data.find(fixed_part) + len(fixed_part)
+
+        # 메뉴 부분 슬라이싱
+        menu_part = meal_data[menu_start_index:].strip()
+
+        menu_list = list(menu_part.split(','))
+        
+        school_restaurant_data = {
+            "생활관식당(블루미르308관)": {
+                "menu": {menu_item: {"type": menu_item} for menu_item in menu_list}
+            }
+        }
+
+    else:
+        WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#root > div > div > div.chat_container > div > div > div:nth-child(5) > div:nth-child(3) > div > div > div > div:nth-child(1) > div"))
+        )
+
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
+
+        restaurants = soup.select("#root > div > div > div.chat_container > div > div > div:nth-child(5) > div:nth-child(3) > div > div > div")
+
+        restaurants_list = list()
+        for i in range(n):
+            restaurant = restaurants[0].select(f".bubble_box:nth-child({i+1})")
+            restaurants_list.append(restaurant)
+            
+        for restaurant_unit in restaurants_list:
+            meal_data = restaurant_unit[0].select_one(".bubble_box > .bubble_unit > span").get_text()
+            menu_lines = meal_data.split('🔹')  # '🔹'로 각 메뉴를 구분
+
+            if "참슬기식당" in menu_lines[0]:
+                menu_A = menu_lines[1].split('-')[1].split(',')  # 첫 번째 메뉴
+                menu_B = menu_lines[2].split('-')[1].split(',')  # 두 번째 메뉴
+
+                school_restaurant_data["참슬기식당(310관 B4층)"] = {
+                    "A": {"menu":{item.strip(): {"type": item.strip()} for item in menu_A}},
+                    "B": {"menu":{item.strip(): {"type": item.strip()} for item in menu_B}}
+                }
+                continue
+            
+            restaurant_name = menu_lines[0].split(' ')[1]
+
+            menu_list = list()
+            for menu in menu_lines[1:]:
+                menu = menu.split('-')[1].split(',')
+                menu_list.extend(menu)
+            
+            school_restaurant_data[restaurant_name] = {
+                "menu":{item:{'type': item} for item in menu_list}
+            }
+    
+    
+    driver.quit()
 
     # 파일 명에 코드를 실행한 날짜와 시간을 반영
     current_time = datetime.now().strftime("%Y%m%d_%H%M%S")

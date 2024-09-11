@@ -156,6 +156,7 @@ def re_recommendation_page():
             st.session_state.state = "start"
             st.success("홈 화면으로 돌아갑니다.")
 
+
 # 학식 추천 결과 페이지
 def school_meal_result_page():
     add_bg_from_url()  # 배경화면 추가
