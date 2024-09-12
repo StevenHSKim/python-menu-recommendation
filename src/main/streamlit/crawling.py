@@ -180,7 +180,7 @@ def crawl_school_meal():
     school_restaurant_data = {}
 
     options = webdriver.ChromeOptions()
-    # options.add_argument('--headless') 
+    options.add_argument('--headless') 
     options.add_argument('--ignore-ssl-errors=yes')
     options.add_argument('--ignore-certificate-errors')
     options.add_argument('--disable-dev-shm-usage')
